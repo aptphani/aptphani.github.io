@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Interactive Three.js Scene</title>
+  <style>
+    body { margin: 0; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <script src="three.js"></script>
+  <script src="tween.js"></script>
+  <script>
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    document.body.appendChild(renderer.domElement);
+    let lastClickTime = 0;
+
+    function createVideoTexture(videoPath) {
+      const video = document.createElement('video');
+      video.src = videoPath;
+      video.loop = true;
+      video.muted = true;
+      video.playbackRate = 1.0;
+      video.crossOrigin = 'anonymous';
+      const texture = new THREE.VideoTexture(video);
+      video.addEventListener('loadedmetadata', () => { video.play(); });
+      return texture;
+    }
+
+    const videoPaths = ['/ani/Video1.mp4', '/ani/Video2.mp4', '/ani/Video3.mp4', '/ani/Video4.mp4', '/ani/Video5.mp4', '/ani/Video6.mp4'];
+    const videoMaterials = videoPaths.map(path => new THREE.MeshBasicMaterial({ map: createVideoTexture(path), side: THREE.DoubleSide }));
+    const planeGeometry = new THREE.PlaneGeometry(2, 2);
+    const planes = videoMaterials.map(material => new THREE.Mesh(planeGeometry, material));
+    const cube = new THREE.Group();
+    planes.forEach(plane => {
+      cube.add(plane);
+      plane.castShadow = true;
+    });
+    cube.position.set(0, 10, 20);
+    scene.add(cube);
+    planes[0].position.set(0, 0, -1);
+    planes[1].position.set(0, 0, 1);
+    planes[1].rotation.y = Math.PI;
+    planes[2].position.set(0, 1, 0);
+    planes[2].rotation.x = -Math.PI / 2;
+    planes[3].position.set(0, -1, 0);
+    planes[3].rotation.x = Math.PI / 2;
+    planes[4].position.set(1, 0, 0);
+    planes[4].rotation.y = Math.PI / 2;
+    planes[5].position.set(-1, 0, 0);
+    planes[5].rotation.y = -Math.PI / 2;
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let isDragging = false;
+    let previousMousePosition = { x: 0, y: 0 };
+
+    document.addEventListener('mousedown', event => {
+      isDragging = true;
+      previousMousePosition.x = event.clientX;
+      previousMousePosition.y = event.clientY;
+    });
+
+    document.addEventListener('mousemove', event => {
+      if (isDragging) {
+        const deltaMove = { x: event.clientX - previousMousePosition.x, y: event.clientY - previousMousePosition.y };
+        const rotateAngleX = deltaMove.y * Math.PI / 180 * 0.5;
+        const rotateAngleY = deltaMove.x * Math.PI / 180 * 0.5;
+        cube.rotation.x += rotateAngleX;
+        cube.rotation.y += rotateAngleY;
+        previousMousePosition = { x: event.clientX, y: event.clientY };
+      }
+    });
+
+    document.addEventListener('mouseup', () => { isDragging = false; });
+
+    document.addEventListener('click', (event) => {
+      if (!isDragging) {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(cube.children);
+        if (intersects.length > 0) {
+          const now = Date.now();
+          const delta = now - lastClickTime;
+          lastClickTime = now;
+          if (delta < 300) {
+            new TWEEN.Tween(cube.position).to({ x: -50, y: 5, z: -20 }, 1000).easing(TWEEN.Easing.Exponential.InOut).start();
+          }
+        }
+      }
+    });
+
+    const spotLight = new THREE.SpotLight(0xffffff, 1);
+    spotLight.position.set(0,18,20); // Adjusted to shine onto the cube and floor
+    spotLight.angle = Math.PI/2 ;
+    spotLight.penumbra = 0.1;
+    spotLight.decay = 0.1; // Adjusted for a realistic light falloff
+    spotLight.distance = 100; // Ensure the light reaches the floor
+    spotLight.castShadow = true;
+    scene.add(spotLight);
+    const floorGeometry = new THREE.PlaneGeometry(500, 500);
+    const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x808080 });
+    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -5;
+    floor.receiveShadow = true;
+    scene.add(floor);
+    camera.position.set(0, 15, 50);
+
+    function animate() {
+      requestAnimationFrame(animate);
+      TWEEN.update();
+      renderer.render(scene, camera);
+    }
+
+    animate();
+  </script>
+</body>
+</html>
