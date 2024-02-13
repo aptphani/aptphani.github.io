@@ -1,57 +1,231 @@
-document.addEventListener('dblclick', (event) => {
-  event.preventDefault();
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
+<!DOCTYPE html>
+<html lang="en">
 
-  const intersects = raycaster.intersectObjects(scene.children, true);
-
-  if (intersects.length > 0) {
-    const intersectedObject = intersects.find(intersect => intersect.object === cube || cube.children.includes(intersect.object));
-
-    if (intersectedObject) {
-      // Assuming you have some way to determine the face's name/identifier
-      // This example assumes the intersected object or its parent has userData with a face name
-      let faceNameText = "Unknown Face"; // Default text if face name is not found
-      if (intersectedObject.object.userData && intersectedObject.object.userData.name) {
-        faceNameText = intersectedObject.object.userData.name; // Use the actual face name
-      } else if (intersectedObject.object.parent && intersectedObject.object.parent.userData.name) {
-        // If the intersected object is part of a group, you might need to check the parent's userData
-        faceNameText = intersectedObject.object.parent.userData.name;
-      }
-
-      // Check if a canvas already exists, if not, create one
-      let canvas = modal.querySelector('canvas');
-      if (!canvas) {
-        canvas = document.createElement('canvas');
-        canvas.width = 200; // Set your desired width
-        canvas.height = 100; // Set your desired height
-        modal.appendChild(canvas);
-      }
-
-      const ctx = canvas.getContext('2d');
-
-      // Clear the canvas in case it's being reused
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Set text properties
-      ctx.font = '18px Arial';
-      ctx.fillStyle = 'black';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-
-      // Draw the actual face name on the canvas
-      ctx.fillText("Clicked Face: " + faceNameText, canvas.width / 2, canvas.height / 2);
-
-      // Move the cube to the new position before showing the modal
-      new TWEEN.Tween(cube.position)
-        .to({ x: -20, y: 10, z: -50 }, 1000)
-        .easing(TWEEN.Easing.Exponential.InOut)
-        .onComplete(() => {
-            // Display the modal after the cube has finished moving
-            modal.style.display = 'block';
-        })
-        .start();
+<head>
+  <meta charset="UTF-8">
+  <title>Interactive Three.js Scene with Face Names</title>
+  <style>
+    body {
+      margin: 0;
     }
+
+    canvas {
+      display: block;
+    }
+
+    #modal {
+      display: none;
+      position: fixed;
+      top: 30%;
+      left: 0%;
+      width: 100%;
+      height: 45%;
+      z-index: 999;
+      background-color: rgba(255, 255, 255, 0.9);
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      padding: 20px;
+      justify-content: center;
+      align-items: center;
+    }
+  </style>
+</head>
+
+<body>
+  <script src="three.js"></script>
+  <script src="tween.js"></script>
+  <script>
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    const faceNames = ['front', 'back', 'top', 'bottom', 'left', 'right'];
+    const videoPaths = ['/ani/Video.mp4', '/ani/Video1.mp4','/ani/Video2.mp4', '/ani/Video3.mp4', '/ani/Video4.mp4', '/ani/Video5.mp4', ];
+    const videoMaterials = videoPaths.map(path => new THREE.MeshBasicMaterial({ map: createVideoTexture(path), side: THREE.DoubleSide }));
+    const planeGeometry = new THREE.PlaneGeometry(2, 2);
+    const cube = new THREE.Group();
+    document.addEventListener('click', function(event) {
+  if (globalModal && !globalModal.contains(event.target)) {
+    document.body.removeChild(globalModal);
+    globalModal = null; // Reset globalModal reference
   }
-});
+}, true); // Use capture mode to ensure this runs before other click events
+
+    videoMaterials.forEach((material, index) => {
+      const plane = new THREE.Mesh(planeGeometry, material);
+      plane.name = faceNames[index];
+      cube.add(plane);
+    });
+    // Position and rotate planes to form the cube
+    arrangeCubeFaces(cube.children);
+    scene.add(cube);
+
+    cube.position.set(0, 15, 40);
+    camera.position.set(0, 15, 50);
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let isDragging = false;
+    let previousMousePosition = { x: 0, y: 0 };
+    let lastClickTime = 0;
+    let rotationSpeed = 0.005;
+
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+    document.addEventListener('click', onClick);
+
+    setupLighting();
+    createFloor();
+    animate();
+
+    function createVideoTexture(videoPath) {
+      const video = document.createElement('video');
+      video.src = videoPath;
+      video.loop = true;
+      video.muted = true;
+      video.playbackRate = 1.0;
+      video.crossOrigin = 'anonymous';
+      const texture = new THREE.VideoTexture(video);
+      video.addEventListener('loadedmetadata', () => { video.play(); });
+      return texture;
+    }
+
+    function arrangeCubeFaces(children) {
+      // Front
+      children[0].position.set(0, 0, -1);
+      // Back
+      children[1].position.set(0, 0, 1);
+      children[1].rotation.y = Math.PI;
+      // Top
+      children[2].position.set(0, 1, 0);
+      children[2].rotation.x = -Math.PI / 2;
+      // Bottom
+      children[3].position.set(0, -1, 0);
+      children[3].rotation.x = Math.PI / 2;
+      // Right
+      children[4].position.set(1, 0, 0);
+      children[4].rotation.y = Math.PI / 2;
+      // Left
+      children[5].position.set(-1, 0, 0);
+      children[5].rotation.y = -Math.PI / 2;
+    }
+
+    function onMouseDown(event) {
+      isDragging = true;
+      previousMousePosition.x = event.clientX;
+      previousMousePosition.y = event.clientY;
+    }
+
+    function onMouseMove(event) {
+      if (isDragging) {
+        const deltaMove = {
+          x: event.clientX - previousMousePosition.x,
+          y: event.clientY - previousMousePosition.y
+        };
+        const rotateAngleX = deltaMove.y * Math.PI / 180 * 0.5;
+        const rotateAngleY = deltaMove.x * Math.PI / 180 * 0.5;
+        cube.rotation.x += rotateAngleX;
+        cube.rotation.y += rotateAngleY;
+        previousMousePosition = { x: event.clientX, y: event.clientY };
+      }
+    }
+
+    function onMouseUp() {
+      isDragging = false;
+    }
+
+    function onClick(event) {
+      if (!isDragging) {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(cube.children);
+        if (intersects.length > 0) {
+          const now = Date.now();
+          const delta = now - lastClickTime;
+          lastClickTime = now;
+          if (delta < 300) {
+            new TWEEN.Tween(cube.position)
+              .to({ x: -50, y: 5, z: -20 }, 1000)
+              .easing(TWEEN.Easing.Exponential.InOut)
+              .onComplete(function () {
+                rotationSpeed = 0;
+                const clickedFaceName = intersects[0].object.name;
+                showModal(clickedFaceName);
+              })
+              .start();
+
+          } else {
+          }
+        }
+      }
+    }
+
+    function setupLighting() {
+      const spotLight = new THREE.SpotLight(0xffffff, 1);
+      spotLight.position.set(0, 20, 20);
+      spotLight.angle = Math.PI / 2;
+      spotLight.penumbra = 0.1;
+      spotLight.decay = 0;
+      spotLight.distance = 1000;
+      spotLight.castShadow = true;
+      scene.add(spotLight);
+    }
+
+    function createFloor() {
+      const floorGeometry = new THREE.PlaneGeometry(200, 200);
+      const floorMaterial = new THREE.MeshStandardMaterial({ color: 0xF7F5DA });
+      const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.y = -5;
+      floor.receiveShadow = true;
+      scene.add(floor);
+    }
+
+    function animate() {
+      if (!isDragging) {
+        cube.rotation.x += rotationSpeed;
+        cube.rotation.y += rotationSpeed;
+      }
+      requestAnimationFrame(animate);
+      TWEEN.update();
+      renderer.render(scene, camera);
+    }
+
+    function showModal(faceName) {
+      var modal = document.createElement('div');
+      modal.id = 'modal';
+      modal.style = 'display:flex; position:fixed; top:30%; left:0%; width:100%; height:45%; z-index:999; background-color:rgba(255,255,255, 0.83); border-radius:5px; box-shadow:0 0 10px rgba(0,0,0,0.5); padding:20px; justify-content:center; align-items:center;';
+      var canvas = document.createElement('canvas');
+      canvas.id = 'faceCanvas';
+      modal.appendChild(canvas);
+      var closeButton = document.createElement('button');
+      closeButton.textContent = 'Close';
+      closeButton.style.position = 'absolute';
+  closeButton.style.top = '-40px'; 
+  closeButton.style.right = '3%';
+      closeButton.onclick = function () {
+        document.body.removeChild(modal);
+        new TWEEN.Tween(cube.position)
+          .to({ x: 0, y: 15, z: 40 }, 1000)
+          .easing(TWEEN.Easing.Exponential.InOut)
+          .onComplete(function () {
+            rotationSpeed = 0.005;
+          }).start();}
+        modal.appendChild(closeButton);
+        document.body.appendChild(modal);
+        var ctx = canvas.getContext('2d');
+        canvas.width = modal.offsetWidth - 40; // Adjust for padding
+        canvas.height = modal.offsetHeight - 40; // Adjust for padding
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear previous content
+        ctx.font = '24px Arial';
+        ctx.fillText(faceName, 10, 50); // Display face name
+      }
+  </script>
+</body>
+
+</html>
