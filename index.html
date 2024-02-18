@@ -1,18 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
-  <title>Interactive Three.js Scene with Face Names</title>
+  <title>Interactive Three.js Scene with Face Names and Laser Animation</title>
   <style>
-    body {
-      margin: 0;
-    }
-
-    canvas {
-      display: block;
-    }
-
+    body { margin: 0; }
+    canvas { display: block; }
     #modal {
       display: none;
       position: fixed;
@@ -28,9 +21,31 @@
       justify-content: center;
       align-items: center;
     }
+    #modal>canvas{
+      width: 90%;
+      height: 100%;
+    }
+    #modal>button {
+position: absolute;
+      top: -8%;
+      right: 3%;
+      display: block;
+      background: rgb(230, 133, 133);;
+      color: black;
+      font-size: 24px;
+      cursor: pointer;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      border-color: black;
+      border-width: 2px;
+      border-style: solid;
+    }
   </style>
 </head>
-
 <body>
   <script src="three.js"></script>
   <script src="tween.js"></script>
@@ -42,17 +57,20 @@
     renderer.shadowMap.enabled = true;
     document.body.appendChild(renderer.domElement);
 
+
     const faceNames = ['front', 'back', 'top', 'bottom', 'left', 'right'];
     const videoPaths = ['/ani/Video.mp4', '/ani/Video1.mp4','/ani/Video2.mp4', '/ani/Video3.mp4', '/ani/Video4.mp4', '/ani/Video5.mp4', ];
     const videoMaterials = videoPaths.map(path => new THREE.MeshBasicMaterial({ map: createVideoTexture(path), side: THREE.DoubleSide }));
     const planeGeometry = new THREE.PlaneGeometry(2, 2);
     const cube = new THREE.Group();
-    document.addEventListener('click', function(event) {
-  if (globalModal && !globalModal.contains(event.target)) {
-    document.body.removeChild(globalModal);
-    globalModal = null; // Reset globalModal reference
-  }
-}, true); // Use capture mode to ensure this runs before other click events
+    document.addEventListener('click', function(event){
+      document.body.removeChild(modal);
+      new TWEEN.Tween(cube.position)
+  .to({ x: 0, y: 15, z: 40 }, 1000)
+  .easing(TWEEN.Easing.Exponential.InOut)
+  .start();
+      rotationSpeed = 0.005;
+    }, true); // Use capture mode to ensure this runs before other click events
 
     videoMaterials.forEach((material, index) => {
       const plane = new THREE.Mesh(planeGeometry, material);
@@ -97,9 +115,10 @@
     function arrangeCubeFaces(children) {
       // Front
       children[0].position.set(0, 0, -1);
+      children[0].rotation.y = Math.PI;
       // Back
       children[1].position.set(0, 0, 1);
-      children[1].rotation.y = Math.PI;
+      
       // Top
       children[2].position.set(0, 1, 0);
       children[2].rotation.x = -Math.PI / 2;
@@ -195,37 +214,119 @@
       TWEEN.update();
       renderer.render(scene, camera);
     }
+    // Cube setup and other initializations remain unchanged
 
     function showModal(faceName) {
-      var modal = document.createElement('div');
-      modal.id = 'modal';
-      modal.style = 'display:flex; position:fixed; top:30%; left:0%; width:100%; height:45%; z-index:999; background-color:rgba(255,255,255, 0.83); border-radius:5px; box-shadow:0 0 10px rgba(0,0,0,0.5); padding:20px; justify-content:center; align-items:center;';
-      var canvas = document.createElement('canvas');
-      canvas.id = 'faceCanvas';
-      modal.appendChild(canvas);
-      var closeButton = document.createElement('button');
-      closeButton.textContent = 'Close';
-      closeButton.style.position = 'absolute';
-  closeButton.style.top = '-40px'; 
-  closeButton.style.right = '3%';
-      closeButton.onclick = function () {
-        document.body.removeChild(modal);
-        new TWEEN.Tween(cube.position)
-          .to({ x: 0, y: 15, z: 40 }, 1000)
-          .easing(TWEEN.Easing.Exponential.InOut)
-          .onComplete(function () {
-            rotationSpeed = 0.005;
-          }).start();}
-        modal.appendChild(closeButton);
+      if(faceName === 'front') {
+        var modal = document.createElement('div');
+        modal.id = 'modal';
+        modal.style.display = "flex";
         document.body.appendChild(modal);
-        var ctx = canvas.getContext('2d');
-        canvas.width = modal.offsetWidth - 40; // Adjust for padding
-        canvas.height = modal.offsetHeight - 40; // Adjust for padding
-        ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear previous content
-        ctx.font = '24px Arial';
-        ctx.fillText(faceName, 10, 50); // Display face name
+        var canvas = document.createElement('canvas');
+        modal.appendChild(canvas);
+        particleAlphabet.init(canvas);
+        var closeButton = document.createElement('button');
+        closeButton.innerText = "X";
+        closeButton.onclick = function() {
+          document.body.removeChild(modal);
+          new TWEEN.Tween(cube.position)
+      .to({ x: 0, y: 15, z: 40 }, 1000)
+      .easing(TWEEN.Easing.Exponential.InOut)
+      .start();
+          rotationSpeed = 0.005;
+        };
+        modal.appendChild(closeButton);
+        modal.addEventListener('click', function(event) {
+          event.stopPropagation();
+        });
+        document.addEventListener('click', function closeModal(event) {
+          if (modal.parentNode) {
+            document.body.removeChild(modal);
+          }});
+      } 
+    }
+
+    // Laser script modified to use a given canvas
+    var particleAlphabet = {
+      Particle: function(x, y) {
+        this.x = x;
+        this.y = y;
+        this.radius = 3.5;
+        this.draw = function(ctx) {
+          ctx.save();
+          ctx.translate(this.x, this.y);
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, this.radius, this.radius);
+          ctx.restore();
+        };
+      },
+      init: function(canvas) {
+        this.canvas = canvas;
+        this.ctx = this.canvas.getContext('2d');
+        this.W = canvas.width = window.innerWidth;
+        this.H = canvas.height = window.innerHeight;
+        this.particlePositions = [];
+        this.particles = [];
+        this.tmpCanvas = document.createElement('canvas');
+        this.tmpCtx = this.tmpCanvas.getContext('2d');
+        setInterval(() => {
+          this.changeLetter();
+          this.getPixels(this.tmpCanvas, this.tmpCtx);
+        }, 1200);
+        this.makeParticles(1000);
+        this.animate();
+      },
+      currentPos: 0,
+      changeLetter: function() {
+        var letters = 'APT</>'.split('');
+        this.time = letters[this.currentPos];
+        this.currentPos = (this.currentPos + 1) % letters.length;
+      },
+      makeParticles: function(num) {
+        for (var i = 0; i <= num; i++) {
+          this.particles.push(new this.Particle(this.W / 2 + Math.random() * 400 - 200, this.H / 2 + Math.random() * 400 - 200));
+        }
+      },
+      getPixels: function(canvas, ctx) {
+        var keyword = this.time,
+            gridX = 6,
+            gridY = 6;
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        ctx.fillStyle = 'red';
+        ctx.font = 'italic bold 330px Noto Serif';
+        ctx.fillText(keyword, canvas.width / 2 - ctx.measureText(keyword).width / 2, canvas.height / 2 + 100);
+        var idata = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        var buffer32 = new Uint32Array(idata.data.buffer);
+        if (this.particlePositions.length > 0) this.particlePositions = [];
+        for (var y = 0; y < canvas.height; y += gridY) {
+          for (var x = 0; x < canvas.width; x += gridX) {
+            if (buffer32[y * canvas.width + x]) {
+              this.particlePositions.push({x: x, y: y});
+            }
+          }
+        }
+      },
+      animateParticles: function() {
+        var p, pPos;
+        for (var i = 0, num = this.particles.length; i < num; i++) {
+          p = this.particles[i];
+          pPos = this.particlePositions[i];
+          if (this.particles.indexOf(p) === this.particlePositions.indexOf(pPos)) {
+            p.x += (pPos.x - p.x) * .3;
+            p.y += (pPos.y - p.y) * .3;
+            p.draw(this.ctx);
+          }
+        }
+      },
+      animate: function() {
+        requestAnimationFrame(this.animate.bind(this));
+        this.ctx.fillStyle = 'rgba(23, 41, 58, .8)';
+        this.ctx.fillRect(0, 0, this.W, this.H);
+        this.animateParticles();
       }
+    };
+
   </script>
 </body>
-
 </html>
