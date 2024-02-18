@@ -22,7 +22,7 @@
       align-items: center;
     }
     #modal>canvas{
-      width: 90%;
+      width: 95%;
       height: 100%;
     }
     #modal>button {
@@ -61,7 +61,7 @@ position: absolute;
     const faceNames = ['front', 'back', 'top', 'bottom', 'left', 'right'];
     const videoPaths = ['/ani/Video.mp4', '/ani/Video1.mp4','/ani/Video2.mp4', '/ani/Video3.mp4', '/ani/Video4.mp4', '/ani/Video5.mp4', ];
     const videoMaterials = videoPaths.map(path => new THREE.MeshBasicMaterial({ map: createVideoTexture(path), side: THREE.DoubleSide }));
-    const planeGeometry = new THREE.PlaneGeometry(2, 2);
+    const planeGeometry = new THREE.PlaneGeometry(4, 4);
     const cube = new THREE.Group();
     document.addEventListener('click', function(event){
       document.body.removeChild(modal);
@@ -114,22 +114,22 @@ position: absolute;
 
     function arrangeCubeFaces(children) {
       // Front
-      children[0].position.set(0, 0, -1);
+      children[0].position.set(0, 0, -2);
       children[0].rotation.y = Math.PI;
       // Back
-      children[1].position.set(0, 0, 1);
+      children[1].position.set(0, 0, 2);
       
       // Top
-      children[2].position.set(0, 1, 0);
+      children[2].position.set(0, 2, 0);
       children[2].rotation.x = -Math.PI / 2;
       // Bottom
-      children[3].position.set(0, -1, 0);
+      children[3].position.set(0, -2, 0);
       children[3].rotation.x = Math.PI / 2;
       // Right
-      children[4].position.set(1, 0, 0);
+      children[4].position.set(2, 0, 0);
       children[4].rotation.y = Math.PI / 2;
       // Left
-      children[5].position.set(-1, 0, 0);
+      children[5].position.set(-2, 0, 0);
       children[5].rotation.y = -Math.PI / 2;
     }
 
@@ -278,7 +278,7 @@ position: absolute;
       },
       currentPos: 0,
       changeLetter: function() {
-        var letters = 'APT</>'.split('');
+        var letters = 'APT </>'.split('');
         this.time = letters[this.currentPos];
         this.currentPos = (this.currentPos + 1) % letters.length;
       },
