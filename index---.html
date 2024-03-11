@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Interactive Three.js Scene with Canvas Faces and Animation</title>
+  <style>
+    body {
+      margin: 0;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    #modal {
+      display: none;
+      position: fixed;
+      top: 30%;
+      left: 0%;
+      width: 100%;
+      height: 45%;
+      z-index: 999;
+      background-color: rgba(255, 255, 255, 0.9);
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      padding: 20px;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #modal>canvas {
+      width: 95%;
+      height: 100%;
+    }
+
+    #modal>button {
+      position: absolute;
+      top: -8%;
+      right: 3%;
+      display: block;
+      background: rgb(230, 133, 133);
+      color: black;
+      font-size: 24px;
+      cursor: pointer;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      border-color: black;
+      border-width: 2px;
+      border-style: solid;
+    }
+  </style>
+</head>
+
+<body>
+  <script src="src/libs/three.js"></script>
+  <!-- Remove the duplicate three.module.min.js script -->
+  <script src="src/libs/aframe.min.js"></script>
+  <script src="src/libs/aframe-ar.min.js"></script>
+  <!-- Remove the duplicate aframe-ar.min.js script -->
+  <script src="src/libs/lodash.min.js"></script>
+  <script src="src/libs/p5.js"></script>
+  <script src="src/libs/tween.js"></script>
+  <!-- Use a standalone version of TextGeometry.js or include it as a module if your setup supports it -->
+  <script src="src/libs/pixi.min.js"></script>
+  <script src="src/libs/particle.js"></script>
+
+  <script>
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    const faceNames = ['front', 'back', 'top', 'bottom', 'left', 'right'];
+    const canvasFaces = {};
+    const cube = new THREE.Group();
+
+    faceNames.forEach((faceName) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 512;
+      canvasFaces[faceName] = canvas;
+    });
+
+    const planeGeometry = new THREE.PlaneGeometry(4, 4);
+
+    faceNames.forEach((faceName, index) => {
+      const texture = new THREE.CanvasTexture(canvasFaces[faceName]);
+      const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
+      const plane = new THREE.Mesh(planeGeometry, material);
+      plane.name = faceName;
+      cube.add(plane);
+    });
+
+    arrangeCubeFaces(cube.children);
+    scene.add(cube);
+
+    cube.position.set(0, 15, 40);
+    camera.position.set(0, 15, 50);
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let isDragging = false;
+    let previousMousePosition = { x: 0, y: 0 };
+    let lastClickTime = 0;
+    let rotationSpeed = 0.005;
+
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+    document.addEventListener('click', onClick);
+
+    setupLighting();
+    createFloor();
+    animate();
+
+    function arrangeCubeFaces(children) {
+      children[0].position.set(0, 0, -2);
+      children[0].rotation.y = Math.PI;
+      children[1].position.set(0, 0, 2);
+      children[2].position.set(0, 2, 0);
+      children[2].rotation.x = -Math.PI / 2;
+      children[3].position.set(0, -2, 0);
+      children[3].rotation.x = Math.PI / 2;
+      children[4].position.set(2, 0, 0);
+      children[4].rotation.y = Math.PI / 2;
+      children[5].position.set(-2, 0, 0);
+      children[5].rotation.y = -Math.PI / 2;
+    }
+
+    function onMouseDown(event) {
+      isDragging = true;
+      previousMousePosition.x = event.clientX;
+      previousMousePosition.y = event.clientY;
+    }
+
+    function onMouseMove(event) {
+      if (isDragging) {
+        const deltaMove = {
+          x: event.clientX - previousMousePosition.x,
+          y: event.clientY - previousMousePosition.y
+        };
+        const rotateAngleX = deltaMove.y * Math.PI / 180 * 0.5;
+        const rotateAngleY = deltaMove.x * Math.PI / 180 * 0.5;
+        cube.rotation.x += rotateAngleX;
+        cube.rotation.y += rotateAngleY;
+        previousMousePosition = { x: event.clientX, y: event.clientY };
+      }
+    }
+
+    function onMouseUp() {
+      isDragging = false;
+    }
+
+    function onClick(event) {
+      if (!isDragging) {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(cube.children);
+        if (intersects.length > 0) {
+          const now = Date.now();
+          const delta = now - lastClickTime;
+          lastClickTime = now;
+          if (delta < 300) {
+            new TWEEN.Tween(cube.position)
+              .to({ x: -50, y: 5, z: -20 }, 1000)
+              .easing(TWEEN.Easing.Exponential.InOut)
+              .onComplete(function () {
+                rotationSpeed = 0;
+                const clickedFaceName = intersects[0].object.name;
+                showModal(clickedFaceName);
+              })
+              .start();
+          }
+        }
+      }
+    }
+
+    function setupLighting() {
+      const spotLight = new THREE.SpotLight(0xffffff, 1);
+      spotLight.position.set(0, 20, 20);
+      spotLight.angle = Math.PI / 2;
+      spotLight.penumbra = 0.1;
+      spotLight.decay = 0;
+      spotLight.distance = 1000;
+      spotLight.castShadow = true;
+      scene.add(spotLight);
+    }
+
+    function createFloor() {
+      const floorGeometry = new THREE.PlaneGeometry(200, 200);
+      const floorMaterial = new THREE.MeshStandardMaterial({ color: 0xF7F5DA });
+      const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.y = -5;
+      floor.receiveShadow = true;
+      scene.add(floor);
+    }
+
+    function animate() {
+      if (!isDragging) {
+        cube.rotation.x += rotationSpeed;
+        cube.rotation.y += rotationSpeed;
+      }
+      requestAnimationFrame(animate);
+      TWEEN.update();
+      renderer.render(scene, camera);
+    }
+
+    function showModal(faceName) {
+      alert(faceName);
+      var modal = document.createElement('div');
+      modal.id = 'modal';
+      modal.style.display = "flex";
+      document.body.appendChild(modal);
+      var canvas = document.createElement('canvas');
+      modal.appendChild(canvas);
+      var closeButton = document.createElement('button');
+      closeButton.innerText = "X";
+      closeButton.onclick = function () {
+        document.body.removeChild(modal);
+        new TWEEN.Tween(cube.position)
+          .to({ x: 0, y: 15, z: 40 }, 1000)
+          .easing(TWEEN.Easing.Exponential.InOut)
+          .start();
+        rotationSpeed = 0.005;
+      };
+      modal.appendChild(closeButton);
+      modal.addEventListener('click', function (event) {
+        event.stopPropagation();
+      });
+      document.addEventListener('click', function closeModal(event) {
+        if (modal.parentNode) {
+          document.body.removeChild(modal);
+        }
+      });
+
+      switch (faceName) {
+        case 'front':
+          particleAlphabet.init(canvas);
+          break;
+        case 'back':
+          const textMaze = new Interactive3DTextMaze(canvas);
+          textMaze.init();
+          break;
+        case 'top':
+          const windField = new TypographicWindField(canvas);
+          windField.init();
+          break;
+        case 'bottom':
+          const particlesGalaxy = new TextParticlesGalaxy(canvas, 'Hello, World!');
+          particlesGalaxy.init();
+          break;
+        case 'left':
+          const textWave = new InteractiveTextWave(canvas, 'Wave Text');
+          textWave.init();
+          break;
+        case 'right':
+          const arTextOverlay = new AugmentedRealityTextOverlay(canvas);
+          arTextOverlay.init();
+          break;
+      }
+    }
+
+    var particleAlphabet = {
+      Particle: function (x, y) {
+        this.x = x;
+        this.y = y;
+        this.radius = 3.5;
+        this.draw = function (ctx) {
+          ctx.save();
+          ctx.translate(this.x, this.y);
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, this.radius, this.radius);
+          ctx.restore();
+        };
+      },
+      init: function (canvas) {
+        this.canvas = canvas;
+        this.ctx = this.canvas.getContext('2d');
+        this.W = canvas.width = window.innerWidth;
+        this.H = canvas.height = window.innerHeight;
+        this.particlePositions = [];
+        this.particles = [];
+        this.tmpCanvas = document.createElement('canvas');
+        this.tmpCtx = this.tmpCanvas.getContext('2d');
+        setInterval(() => {
+          this.changeLetter();
+          this.getPixels(this.tmpCanvas, this.tmpCtx);
+        }, 1200);
+        this.makeParticles(1000);
+        this.animate();
+      },
+      currentPos: 0,
+      changeLetter: function () {
+        var letters = 'APT </>'.split('');
+        this.time = letters[this.currentPos];
+        this.currentPos = (this.currentPos + 1) % letters.length;
+      },
+      makeParticles: function (num) {
+        for (var i = 0; i <= num; i++) {
+          this.particles.push(new this.Particle(this.W / 2 + Math.random() * 400 - 200, this.H / 2 + Math.random() * 400 - 200));
+        }
+      },
+      getPixels: function (canvas, ctx) {
+        var keyword = this.time,
+          gridX = 6,
+          gridY = 6;
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        ctx.fillStyle = 'red';
+        ctx.font = 'italic bold 330px Noto Serif';
+        ctx.fillText(keyword, canvas.width / 2 - ctx.measureText(keyword).width / 2, canvas.height / 2 + 100);
+        var idata = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        var buffer32 = new Uint32Array(idata.data.buffer);
+        if (this.particlePositions.length > 0) this.particlePositions = [];
+        for (var y = 0; y < canvas.height; y += gridY) {
+          for (var x = 0; x < canvas.width; x += gridX) {
+            if (buffer32[y * canvas.width + x]) {
+              this.particlePositions.push({ x: x, y: y });
+            }
+          }
+        }
+      },
+      animateParticles: function () {
+        var p, pPos;
+        for (var i = 0, num = this.particles.length; i < num; i++) {
+          p = this.particles[i];
+          pPos = this.particlePositions[i];
+          if (this.particles.indexOf(p) === this.particlePositions.indexOf(pPos)) {
+            p.x += (pPos.x - p.x) * .3;
+            p.y += (pPos.y - p.y) * .3;
+            p.draw(this.ctx);
+          }
+        }
+      },
+      animate: function () {
+        requestAnimationFrame(this.animate.bind(this));
+        this.ctx.fillStyle = 'rgba(23, 41, 58, .8)';
+        this.ctx.fillRect(0, 0, this.W, this.H);
+        this.animateParticles();
+      }
+    };
+  </script>
+
+  <script>
+    class TypographicWindField {
+      constructor(canvas) {
+        this.canvas = canvas;
+        this.scene = new THREE.Scene();
+        this.camera = new THREE.PerspectiveCamera(75, canvas.width / canvas.height, 0.1, 1000);
+        this.renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+        this.textMeshes = [];
+        this.windForce = new THREE.Vector3();
+      }
+
+      init() {
+        this.renderer.setSize(this.canvas.width, this.canvas.height);
+        this.camera.position.z = 5;
+        this.createTypographicField();
+        this.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
+        this.animate();
+      }
+
+      createTypographicField() {
+        const loader = new THREE.FontLoader();
+        loader.load('src/libs/helvetiker_regular.typeface.json', (font) => {
+          const textGeometry = new THREE.TextGeometry('Wind', {
+            font: font,
+            size: 2,
+            height: 0.5,
+            curveSegments: 12,
+          });
+          const textMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+          const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+          this.scene.add(textMesh);
+          this.textMeshes.push(textMesh);
+        }, undefined, function (error) {
+          console.error('An error occurred loading the font:', error);
+        });
+      }
+
+      onMouseMove(event) {
+        const rect = this.canvas.getBoundingClientRect();
+        const mouseX = ((event.clientX - rect.left) / this.canvas.width) * 2 - 1;
+        const mouseY = -((event.clientY - rect.top) / this.canvas.height) * 2 + 1;
+        this.windForce.set(mouseX, mouseY, 0);
+      }
+
+      animate() {
+        requestAnimationFrame(this.animate.bind(this));
+
+        this.textMeshes.forEach((mesh) => {
+          mesh.geometry.vertices.forEach((vertex) => {
+            const distance = vertex.distanceTo(this.windForce);
+            const force = this.windForce.clone().multiplyScalar(1 / (distance * distance));
+            vertex.add(force);
+          });
+          mesh.geometry.verticesNeedUpdate = true;
+        });
+        this.renderer.render(this.scene, this.camera);
+      }
+    }
+  </script>
+
+  <script>
+    class TextParticlesGalaxy {
+      constructor(canvas, text) {
+        this.canvas = canvas;
+        this.text = text;
+        this.particles = [];
+        this.isExploded = false;
+        this.app = new PIXI.Application({
+          view: canvas,
+          width: canvas.width,
+          height: canvas.height,
+          transparent: true,
+        });
+      }
+
+      init() {
+        this.createParticles();
+        this.app.stage.interactive = true;
+        this.app.stage.on('pointerdown', this.explode.bind(this));
+        this.app.ticker.add(this.animateParticles.bind(this));
+      }
+
+      createParticles() {
+        const textStyle = new PIXI.TextStyle({
+          fontFamily: 'Arial',
+          fontSize: 24,
+          fill: '#ffffff',
+        });
+        const textMetrics = PIXI.TextMetrics.measureText(this.text, textStyle);
+        const textSprite = new PIXI.Text(this.text, textStyle);
+        textSprite.anchor.set(0.5);
+        textSprite.x = this.app.screen.width / 2;
+        textSprite.y = this.app.screen.height / 2;
+        this.app.stage.addChild(textSprite);
+
+        const textureCanvas = this.app.renderer.plugins.extract.canvas(textSprite);
+        const textureContext = textureCanvas.getContext('2d');
+        const imageData = textureContext.getImageData(0, 0, textureCanvas.width, textureCanvas.height);
+        const pixels = imageData.data;
+
+        for (let i = 0; i < pixels.length; i += 4) {
+          if (pixels[i + 3] > 0) { // If the pixel is not transparent
+            const x = (i / 4) % textureCanvas.width;
+            const y = Math.floor(i / 4 / textureCanvas.width);
+            const particle = new PIXI.Sprite(PIXI.Texture.WHITE);
+            particle.tint = 0xffffff;
+            particle.width = particle.height = 1;
+            particle.x = x - textMetrics.width / 2 + this.app.screen.width / 2;
+            particle.y = y - textMetrics.height / 2 + this.app.screen.height / 2;
+            particle.anchor.set(0.5);
+            particle.alpha = 0.8;
+            this.app.stage.addChild(particle);
+            this.particles.push(particle);
+          }
+        }
+
+        textSprite.destroy(); // Clean up the text sprite as it's no longer needed
+      }
+
+      animateParticles() {
+        if (this.isExploded) {
+          this.particles.forEach(particle => {
+            particle.x += Math.random() * 10 - 5;
+            particle.y += Math.random() * 10 - 5;
+            particle.alpha -= 0.01;
+            if (particle.alpha <= 0) {
+              particle.destroy(); // Properly dispose of the particle
+            }
+          });
+
+          this.particles = this.particles.filter(particle => particle.alpha > 0);
+
+          if (this.particles.length === 0) {
+            this.isExploded = false;
+            this.createParticles(); // Recreate particles to start over
+          }
+        }
+      }
+
+      explode() {
+        this.isExploded = true;
+      }
+    }
+  </script>
+
+
+  <script>
+    class Interactive3DTextMaze {
+      constructor(canvas) {
+        this.canvas = canvas;
+        this.scene = new THREE.Scene();
+        this.camera = new THREE.PerspectiveCamera(75, canvas.width / canvas.height, 0.1, 1000);
+        this.renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+        this.textMeshes = [];
+      }
+
+      init() {
+        this.renderer.setSize(this.canvas.width, this.canvas.height);
+        this.camera.position.z = 5;
+        this.loadFontAndCreateMaze();
+        this.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
+        this.animate();
+      }
+
+      loadFontAndCreateMaze() {
+        const loader = new THREE.FontLoader();
+        loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', (font) => {
+          const wallGeometry = new THREE.TextGeometry('Maze Wall', {
+            font: font,
+            size: 0.5,
+            height: 0.2,
+          });
+          const wallMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+          const wallMesh = new THREE.Mesh(wallGeometry, wallMaterial);
+          wallMesh.position.set(-2, 0, 0);
+          this.scene.add(wallMesh);
+          this.textMeshes.push(wallMesh);
+
+          const pathGeometry = new THREE.TextGeometry('Maze Path', {
+            font: font,
+            size: 0.5,
+            height: 0.1,
+          });
+          const pathMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+          const pathMesh = new THREE.Mesh(pathGeometry, pathMaterial);
+          pathMesh.position.set(2, 0, 0);
+          this.scene.add(pathMesh);
+          this.textMeshes.push(pathMesh);
+        }, undefined, function (error) {
+          console.error('An error occurred while loading the font:', error);
+        });
+      }
+
+      onMouseMove(event) {
+        const rect = this.canvas.getBoundingClientRect();
+        const mouseX = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        const mouseY = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+        this.textMeshes.forEach((mesh) => {
+          mesh.rotation.y = mouseX * Math.PI;
+          mesh.rotation.x = mouseY * Math.PI;
+        });
+      }
+
+      animate() {
+        requestAnimationFrame(this.animate.bind(this));
+        this.renderer.render(this.scene, this.camera);
+      }
+    }
+  </script>
+
+  <script>
+    class AugmentedRealityTextOverlay {
+      constructor(canvas) {
+        this.canvas = canvas;
+        this.scene = new THREE.Scene();
+        this.camera = new THREE.Camera();
+        this.renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+        this.textMesh = null;
+      }
+
+      init() {
+        this.renderer.setSize(this.canvas.width, this.canvas.height);
+        const arToolkitSource = new THREEx.ArToolkitSource({ sourceType: 'webcam' });
+
+        arToolkitSource.init(() => {
+          setTimeout(() => {
+            arToolkitSource.onResizeElement();
+            arToolkitSource.copyElementSizeTo(this.renderer.domElement);
+          }, 500);
+        });
+
+        const arToolkitContext = new THREEx.ArToolkitContext({
+          cameraParametersUrl: THREEx.ArToolkitContext.baseURL + '../data/data/camera_para.dat',
+          detectionMode: 'mono',
+        });
+
+        arToolkitContext.init(() => {
+          this.camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
+        });
+
+        const markerControls = new THREEx.ArMarkerControls(arToolkitContext, this.camera, {
+          type: 'pattern',
+          patternUrl: THREEx.ArToolkitContext.baseURL + '../data/data/patt.hiro',
+          changeMatrixMode: 'cameraTransformMatrix',
+        });
+
+        this.scene.add(new THREE.AmbientLight(0xffffff)); // Optional: Adding some light to the scene
+
+        const loader = new THREE.FontLoader();
+        loader.load('src/lbs/helvetiker_regular.typeface.json', (font) => {
+          const textGeometry = new THREE.TextGeometry('AR Text', {
+            font: font,
+            size: 1,
+            height: 0.2,
+          });
+          const textMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+          this.textMesh = new THREE.Mesh(textGeometry, textMaterial);
+          this.textMesh.position.y = 1;
+          this.scene.add(this.textMesh);
+        }, undefined, function (error) {
+          console.error('An error occurred loading the font:', error);
+        });
+
+        this.animate();
+      }
+
+      animate() {
+        requestAnimationFrame(this.animate.bind(this));
+        if (this.renderer && this.scene && this.camera) {
+          this.renderer.render(this.scene, this.camera);
+        }
+      }
+    }
+  </script>
+
+  <script>
+    class InteractiveTextWave {
+      constructor(canvas, text) {
+        this.canvas = canvas;
+        this.text = text;
+        this.textSprites = [];
+        this.app = new PIXI.Application({
+          view: canvas,
+          width: canvas.width,
+          height: canvas.height,
+          transparent: true,
+        });
+      }
+
+      init() {
+        this.createWaveText();
+        this.app.ticker.add(() => {
+          this.animateWave();
+        });
+      }
+
+      createWaveText() {
+        const containerWidth = this.canvas.width;
+        const containerHeight = this.canvas.height;
+
+        for (let i = 0; i < this.text.length; i++) {
+          const charSprite = new PIXI.Text(this.text[i], { fontFamily: 'Arial', fontSize: 48, fill: 0xffffff });
+          charSprite.x = i * 50 - (this.text.length * 50) / 2 + containerWidth / 2;
+          charSprite.y = containerHeight / 2;
+          charSprite.anchor.set(0.5);
+          this.app.stage.addChild(charSprite);
+          this.textSprites.push(charSprite);
+        }
+      }
+
+      animateWave() {
+        this.textSprites.forEach((sprite, index) => {
+          const mouseX = this.app.renderer.plugins.interaction.mouse.global.x;
+          const distanceX = mouseX - sprite.x;
+          sprite.y = Math.sin(this.app.ticker.lastTime / 1000 + index * 0.5 + distanceX * 0.02) * 20 + this.app.screen.height / 2;
+        });
+      }
+    }
+  </script>
+
+  <script>
+    class canvas_front {
+      constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.bgLayer = new FullscreenCanvas(canvas);
+        this.mainLayer = new FullscreenCanvas(canvas);
+        this.shapeLayer = new FullscreenCanvas(canvas, true);
+        this.STEP_LENGTH = 1;
+        this.CELL_SIZE = 10;
+        this.BORDER_WIDTH = 2;
+        this.MAX_FONT_SIZE = 500;
+        this.MAX_ELECTRONS = 100;
+        this.CELL_DISTANCE = this.CELL_SIZE + this.BORDER_WIDTH;
+        this.CELL_REPAINT_INTERVAL = [300, 500];
+        this.BG_COLOR = '#1d2227';
+        this.BORDER_COLOR = '#13191f';
+        this.CELL_HIGHLIGHT = '#328bf6';
+        this.ELECTRON_COLOR = '#00b07c';
+        this.FONT_COLOR = '#ff5353';
+        this.FONT_FAMILY = 'Helvetica, Arial, "Hiragino Sans GB", "Microsoft YaHei", "WenQuan Yi Micro Hei", sans-serif';
+        this.DPR = window.devicePixelRatio || 1;
+        this.ACTIVE_ELECTRONS = [];
+        this.PINNED_CELLS = [];
+        this.MOVE_TRAILS = [
+          [0, 1],
+          [0, -1],
+          [1, 0],
+          [-1, 0],
+        ].map(([x, y]) => [x * this.CELL_DISTANCE, y * this.CELL_DISTANCE]);
+        this.END_POINTS_OFFSET = [
+          [0, 0],
+          [0, 1],
+          [1, 0],
+          [1, 1],
+        ].map(([x, y]) => [
+          x * this.CELL_DISTANCE - this.BORDER_WIDTH / 2,
+          y * this.CELL_DISTANCE - this.BORDER_WIDTH / 2,
+        ]);
+        this.shape = {
+          lastText: '',
+          lastMatrix: null,
+          renderID: undefined,
+          isAlive: false,
+          electronOptions: {
+            speed: 2,
+            color: this.FONT_COLOR,
+            lifeTime: this.randomInt(300, 500),
+          },
+          cellOptions: {
+            background: this.FONT_COLOR,
+            electronCount: this.randomInt(1, 4),
+            electronOptions: {
+              speed: 2,
+              color: this.FONT_COLOR,
+              lifeTime: this.randomInt(300, 500),
+            },
+          },
+          explodeOptions: {
+            electronOptions: {
+              speed: 2,
+              color: this.FONT_COLOR,
+              lifeTime: this.randomInt(500, 1500),
+            },
+          },
+        };
+      }
+
+      init() {
+        if (this.shape.isAlive) {
+          return;
+        }
+        this.bgLayer.onResize(this.drawGrid.bind(this));
+        this.mainLayer.onResize(this.prepaint.bind(this));
+        this.shapeLayer.onResize(() => {
+          if (this.shape.lastText) {
+            this.print(this.shape.lastText);
+          }
+        });
+        this.prepaint();
+        this.render();
+        this.unbindEvents = this.handlePointer();
+        this.shape.isAlive = true;
+      }
+
+      randomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+
+      clear() {
+        const {
+          lastMatrix,
+        } = this.shape;
+
+        this.shape.lastText = '';
+        this.shape.lastMatrix = null;
+        this.PINNED_CELLS.length = 0;
+
+        if (lastMatrix) {
+          this.explode(lastMatrix);
+        }
+      }
+
+      destroy() {
+        if (!this.shape.isAlive) {
+          return;
+        }
+
+        this.bgLayer.remove();
+        this.mainLayer.remove();
+        this.shapeLayer.remove();
+
+        this.unbindEvents();
+
+        cancelAnimationFrame(this.shape.renderID);
+
+        this.ACTIVE_ELECTRONS.length = this.PINNED_CELLS.length = 0;
+        this.shape.lastMatrix = null;
+        this.shape.lastText = '';
+        this.shape.isAlive = false;
+      }
+
+      getTextMatrix(
+        text,
+        {
+          fontWeight = 'bold',
+          fontFamily = this.FONT_FAMILY,
+        } = {},
+      ) {
+        const {
+          width,
+          height,
+        } = this.shapeLayer;
+
+        this.shapeLayer.repaint((ctx) => {
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.font = `${fontWeight} ${this.MAX_FONT_SIZE}px ${fontFamily}`;
+
+          const scale = width / ctx.measureText(text).width;
+          const fontSize = Math.min(this.MAX_FONT_SIZE, this.MAX_FONT_SIZE * scale * 0.8);
+
+          ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+
+          ctx.fillText(text, width / 2, height / 2);
+        });
+
+        const pixels = this.shapeLayer.context.getImageData(0, 0, width, height).data;
+        const matrix = [];
+        for (let i = 0; i < height; i += this.CELL_DISTANCE) {
+          for (let j = 0; j < width; j += this.CELL_DISTANCE) {
+            const alpha = pixels[(j + i * width) * 4 + 3];
+
+            if (alpha > 0) {
+              matrix.push([
+                Math.floor(i / this.CELL_DISTANCE),
+                Math.floor(j / this.CELL_DISTANCE),
+              ]);
+            }
+          }
+        }
+
+        return matrix;
+      }
+
+      print(text, options) {
+        const isBlank = !!this.shape.lastText;
+
+        this.clear();
+
+        if (text !== 0 && !text) {
+          if (isBlank) {
+            this.spiral({
+              reverse: true,
+              lifeTime: 500,
+              electronCount: 2,
+            });
+          }
+
+          return;
+        }
+
+        this.spiral();
+
+        this.shape.lastText = text;
+
+        const matrix = this.shape.lastMatrix = _.shuffle(this.getTextMatrix(text, options));
+
+        matrix.forEach(([i, j]) => {
+          const cell = new Cell(i, j, this.shape.cellOptions);
+
+          cell.scheduleUpdate(200);
+          cell.pin();
+        });
+      }
+
+      spiral({
+        radius,
+        increment = 0,
+        reverse = false,
+        lifeTime = 250,
+        electronCount = 1,
+        forceElectrons = true,
+      } = {}) {
+        const {
+          width,
+          height,
+        } = this.mainLayer;
+
+        const cols = Math.floor(width / this.CELL_DISTANCE);
+        const rows = Math.floor(height / this.CELL_DISTANCE);
+
+        const ox = Math.floor(cols / 2);
+        const oy = Math.floor(rows / 2);
+
+        let cnt = 1;
+        let deg = _.random(360);
+        let r = radius === undefined ? Math.floor(Math.min(cols, rows) / 3) : radius;
+
+        const step = reverse ? 15 : -15;
+        const max = Math.abs(360 / step);
+
+        while (cnt <= max) {
+          const i = oy + Math.floor(r * Math.sin(deg / 180 * Math.PI));
+          const j = ox + Math.floor(r * Math.cos(deg / 180 * Math.PI));
+
+          const cell = new Cell(i, j, {
+            electronCount,
+            forceElectrons,
+            background: this.CELL_HIGHLIGHT,
+            electronOptions: {
+              lifeTime,
+              speed: 3,
+              color: this.CELL_HIGHLIGHT,
+            },
+          });
+
+          cell.delay(cnt * 16);
+
+          cnt++;
+          deg += step;
+          r += increment;
+        }
+      }
+
+      explode(matrix) {
+        this.stripOld();
+
+        if (matrix) {
+          const { length } = matrix;
+
+          const max = Math.min(
+            50,
+            _.random(Math.floor(length / 20), Math.floor(length / 10)),
+          );
+
+          for (let idx = 0; idx < max; idx++) {
+            const [i, j] = matrix[idx];
+
+            const cell = new Cell(i, j, this.shape.explodeOptions);
+
+            cell.paintNextTo(this.mainLayer);
+          }
+        } else {
+          const max = _.random(10, 20);
+
+          for (let idx = 0; idx < max; idx++) {
+            this.createRandomCell(this.shape.explodeOptions);
+          }
+        }
+      }
+
+      stripOld(limit = 1000) {
+        const now = Date.now();
+
+        for (let i = 0, max = this.ACTIVE_ELECTRONS.length; i < max; i++) {
+          const e = this.ACTIVE_ELECTRONS[i];
+
+          if (e.expireAt - now < limit) {
+            this.ACTIVE_ELECTRONS.splice(i, 1);
+
+            i--;
+            max--;
+          }
+        }
+      }
+
+      createRandomCell(options = {}) {
+        if (this.ACTIVE_ELECTRONS.length >= this.MAX_ELECTRONS) return;
+
+        const { width, height } = this.mainLayer;
+
+        const cell = new Cell(
+          _.random(height / this.CELL_DISTANCE),
+          _.random(width / this.CELL_DISTANCE),
+          options,
+        );
+
+        cell.paintNextTo(this.mainLayer);
+      }
+
+      drawGrid() {
+        this.bgLayer.paint((ctx, { width, height }) => {
+          ctx.fillStyle = this.BG_COLOR;
+          ctx.fillRect(0, 0, width, height);
+
+          ctx.fillStyle = this.BORDER_COLOR;
+
+          for (let h = this.CELL_SIZE; h < height; h += this.CELL_DISTANCE) {
+            ctx.fillRect(0, h, width, this.BORDER_WIDTH);
+          }
+
+          for (let w = this.CELL_SIZE; w < width; w += this.CELL_DISTANCE) {
+            ctx.fillRect(w, 0, this.BORDER_WIDTH, height);
+          }
+        });
+      }
+
+      iterateItemsIn(list) {
+        const now = Date.now();
+
+        for (let i = 0, max = list.length; i < max; i++) {
+          const item = list[i];
+
+          if (now >= item.expireAt) {
+            list.splice(i, 1);
+            i--;
+            max--;
+          } else {
+            item.paintNextTo(this.mainLayer);
+          }
+        }
+      }
+
+      drawItems() {
+        this.iterateItemsIn(this.PINNED_CELLS);
+        this.iterateItemsIn(this.ACTIVE_ELECTRONS);
+      }
+
+      activateRandom() {
+        const now = Date.now();
+
+        if (this.nextRandomAt) {
+          return;
+        }
+
+        this.nextRandomAt = now + _.random(300, 1000);
+
+        this.createRandomCell();
+      }
+
+      handlePointer() {
+        let lastCell = [];
+        let touchRecords = {};
+
+        const isSameCell = (i, j) => {
+          const [li, lj] = lastCell;
+
+          lastCell = [i, j];
+
+          return i === li && j === lj;
+        };
+
+        const print = (isMove, { clientX, clientY }) => {
+          const i = Math.floor(clientY / this.CELL_DISTANCE);
+          const j = Math.floor(clientX / this.CELL_DISTANCE);
+
+          if (isMove && isSameCell(i, j)) {
+            return;
+          }
+
+          const cell = new Cell(i, j, {
+            background: this.CELL_HIGHLIGHT,
+            forceElectrons: true,
+            electronCount: isMove ? 2 : 4,
+            electronOptions: {
+              speed: 3,
+              lifeTime: isMove ? 500 : 1000,
+              color: this.CELL_HIGHLIGHT,
+            },
+          });
+
+          cell.paintNextTo(this.mainLayer);
+        };
+
+        const handlers = {
+          touchend({ changedTouches }) {
+            if (changedTouches) {
+              Array.from(changedTouches).forEach(({ identifier }) => {
+                delete touchRecords[identifier];
+              });
+            } else {
+              touchRecords = {};
+            }
+          },
+        };
+
+        const filterTouches = (touchList) => {
+          return Array.from(touchList).filter(({ identifier, clientX, clientY }) => {
+            const rec = touchRecords[identifier];
+            touchRecords[identifier] = { clientX, clientY };
+
+            return !rec || clientX !== rec.clientX || clientY !== rec.clientY;
+          });
+        };
+
+        [
+          'mousedown',
+          'touchstart',
+          'mousemove',
+          'touchmove',
+        ].forEach(name => {
+          const isMove = /move/.test(name);
+          const isTouch = /touch/.test(name);
+
+          const fn = print.bind(null, isMove);
+
+          handlers[name] = function handler(evt) {
+            if (isTouch) {
+              filterTouches(evt.touches).forEach(fn);
+            } else {
+              fn(evt);
+            }
+          };
+        });
+
+        const events = Object.keys(handlers);
+
+        events.forEach(name => {
+          document.addEventListener(name, handlers[name]);
+        });
+
+        return () => {
+          events.forEach(name => {
+            document.removeEventListener(name, handlers[name]);
+          });
+        };
+      }
+
+      prepaint() {
+        this.drawGrid();
+
+        this.mainLayer.paint((ctx, { width, height }) => {
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, width, height);
+        });
+
+        this.mainLayer.blendBackground(this.bgLayer.canvas, 0.9);
+      }
+
+      render() {
+        this.mainLayer.blendBackground(this.bgLayer.canvas);
+
+        this.drawItems();
+        this.activateRandom();
+
+        this.shape.renderID = requestAnimationFrame(() => this.render());
+      }
+
+      queue() {
+        const text = 'BBAE';
+
+        let i = 0;
+        const max = text.length;
+
+        const run = () => {
+          if (i >= max) return;
+
+          this.print(text.slice(0, ++i));
+          this.timer = setTimeout(run, 1e3 + i);
+        };
+
+        run();
+      }
+
+      countdown() {
+        const arr = _.range(3, 0, -1);
+
+        let i = 0;
+        const max = arr.length;
+
+        const run = () => {
+          if (i >= max) {
+            this.clear();
+            return this.galaxy();
+          }
+
+          this.print(arr[i++]);
+          setTimeout(run, 1e3 + i);
+        };
+
+        run();
+      }
+
+      galaxy() {
+        this.spiral({
+          radius: 0,
+          increment: 1,
+          lifeTime: 100,
+          electronCount: 1,
+        });
+
+        this.timer = setTimeout(() => this.galaxy(), 16);
+      }
+
+      ring() {
+        this.spiral();
+
+        this.timer = setTimeout(() => this.ring(), 16);
+      }
+    }
+  </script>
+
+
+</body>
+
+</html>
