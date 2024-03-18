@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>3D Bird Flap Simulation</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.156.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.156.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+        import { mergeBufferGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+        const LETTER_SIZE = 20;
+        const WING_FLAP_SPEED = 0.04;
+        const WING_FLAP_ANGLE = Math.PI / 4;
+        const NUM_BIRDS = 20;
+        const BOUNDS = 500;
+        const BIRD_SPEED =1;
+        const GENERATION_INTERVAL = 3000;
+
+        const birds = [];
+        let font;
+
+        const loader = new FontLoader();
+        loader.load('https://unpkg.com/three@0.156.0/examples/fonts/helvetiker_regular.typeface.json', (loadedFont) => {
+            font = loadedFont;
+            createBirds();
+            setInterval(createBirds, GENERATION_INTERVAL);
+        });
+
+        function createBird(letter) {
+            const letterShape = new THREE.ShapeGeometry(
+                font.generateShapes(letter, LETTER_SIZE)[0]
+            );
+            letterShape.computeBoundingBox();
+            const letterWidth = letterShape.boundingBox.max.x - letterShape.boundingBox.min.x;
+
+            const rightWing = letterShape.clone();
+            const leftWing = letterShape.clone();
+            leftWing.scale(-1, 1, 1);
+
+            const birdGroup = new THREE.Group();
+            const birdMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true });
+            
+            const rightWingMesh = new THREE.Mesh(rightWing, birdMaterial);
+            rightWingMesh.position.x = letterWidth / 2; // Position the right wing
+            rightWingMesh.geometry.translate(-letterWidth / 2, 0, 0); // Pivot point adjustment
+
+            const leftWingMesh = new THREE.Mesh(leftWing, birdMaterial);
+            leftWingMesh.position.x = -(letterWidth / 2)+2; // Position the left wing
+            leftWingMesh.geometry.translate(letterWidth / 2, 0, 0); // Pivot point adjustment
+
+            birdGroup.add(rightWingMesh);
+            birdGroup.add(leftWingMesh);
+
+            birdGroup.position.set(
+                (Math.random() - 0.5) * 200,
+                (Math.random() - 0.5) * 200,
+                (Math.random() - 0.5) * 200 + camera.position.z
+            );
+            birdGroup.rotateX(Math.PI / 2);
+            birdGroup.velocity = new THREE.Vector3(0, 0, -1).multiplyScalar(BIRD_SPEED);
+            birdGroup.flapAngle = 0;
+            birdGroup.flapSpeed = WING_FLAP_SPEED;
+            birdGroup.rightWingMesh = rightWingMesh;
+            birdGroup.leftWingMesh = leftWingMesh;
+
+            return birdGroup;
+        }
+
+        function updateBirds() {
+            birds.forEach((birdGroup) => {
+                birdGroup.position.add(birdGroup.velocity);
+
+                if (birdGroup.position.z < -BOUNDS) {
+                    scene.remove(birdGroup);
+                    birds.splice(birds.indexOf(birdGroup), 1);
+                }
+
+                birdGroup.flapAngle += birdGroup.flapSpeed;
+                if (birdGroup.flapAngle > WING_FLAP_ANGLE || birdGroup.flapAngle < 0) {
+                    birdGroup.flapSpeed = -birdGroup.flapSpeed;
+                }
+
+                birdGroup.rightWingMesh.rotation.y = birdGroup.flapAngle;
+                birdGroup.leftWingMesh.rotation.y = -birdGroup.flapAngle;
+
+                const opacity = 1 - Math.abs(birdGroup.position.z) / BOUNDS;
+                birdGroup.rightWingMesh.material.opacity = opacity;
+                birdGroup.leftWingMesh.material.opacity = opacity;
+            });
+        }
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 200;
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        function createBirds() {
+            const letterString =localStorage.getItem('name') ? localStorage.getItem('name') : "<APT/>";
+            for (let i = 0; i < NUM_BIRDS; i++) {
+                const letter = letterString[i % letterString.length];
+                const birdGroup = createBird(letter);
+                birds.push(birdGroup);
+                scene.add(birdGroup);
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            updateBirds();
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>

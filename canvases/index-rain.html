@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>three.js - Text Rain with Ripple Effects</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <script type="importmap">
+      {
+          "imports": {
+              "three": "https://unpkg.com/three@0.156.0/build/three.module.js",
+              "three/addons/": "https://unpkg.com/three@0.156.0/examples/jsm/"
+          }
+      }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+        import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+
+        let camera, scene, renderer, controls;
+        let letters = [];
+        let velocities = [];
+        let ripples = [];
+
+        init();
+        animate();
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            camera.position.set(0, 0, 40);
+
+            const ambientLight = new THREE.AmbientLight(0xcccccc, 0.4);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(1, 1, 0).normalize();
+            scene.add(directionalLight);
+
+            // Water Base
+            const waterGeometry = new THREE.PlaneGeometry(100, 100);
+            const waterMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.6 });
+            const water = new THREE.Mesh(waterGeometry, waterMaterial);
+            water.rotation.x = -Math.PI / 2;
+            water.position.y = -5;
+            scene.add(water);
+
+            // Load Font and Create Text
+            const loader = new FontLoader();
+            loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function (font) {
+                const textMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
+                const lettersOptions = ['A', 'P', 'T'];
+                lettersOptions.forEach((letter, index) => {
+                    const geometry = new TextGeometry(letter, {
+                        font: font,
+                        size: 0.5,
+                        height: 0.1,
+                    });
+                    for (let i = 0; i < 250; i++) { // Adjust number of particles
+                        const letterMesh = new THREE.Mesh(geometry, textMaterial);
+                        resetLetterPosition(letterMesh);
+                        letters.push(letterMesh);
+                        velocities.push(Math.random() * 0.05 + 0.25); // Randomize velocity
+                        scene.add(letterMesh);
+                    }
+                });
+            });
+
+            window.addEventListener('resize', onWindowResize, false);
+        }
+
+        function resetLetterPosition(letter) {
+            letter.position.x = (Math.random() - 0.5) * 50; // Spread across the screen width
+            letter.position.y = Math.random() * 30 + 10; // Start above the camera view
+            letter.position.z = (Math.random() - 0.5) * 50;
+        }
+
+        function addRipple(x, z) {
+            const rippleGeometry = new THREE.CircleGeometry(0.1, 32);
+            const rippleMaterial = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.8 });
+            const ripple = new THREE.Mesh(rippleGeometry, rippleMaterial);
+            ripple.position.set(x, -4.9, z);
+            ripple.rotation.x = -Math.PI / 2;
+            ripples.push({ mesh: ripple, scale: 1 });
+            scene.add(ripple);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            letters.forEach((letter, index) => {
+                letter.position.y -= velocities[index]; // Apply velocity
+                if (letter.position.y < -5) { // Reset position when hitting the water base
+                    addRipple(letter.position.x, letter.position.z);
+                    resetLetterPosition(letter);
+                }
+            });
+
+            ripples.forEach(ripple => {
+                ripple.scale += 0.1;
+                ripple.mesh.scale.set(ripple.scale, ripple.scale, ripple.scale);
+                ripple.mesh.material.opacity = Math.max(0, 1 - ripple.scale / 5); // Adjust fade out speed
+                if (ripple.mesh.material.opacity === 0) {
+                    scene.remove(ripple.mesh);
+                }
+            });
+            ripples = ripples.filter(ripple => ripple.mesh.material.opacity > 0);
+
+            renderer.render(scene, camera);
+        }
+    </script>
+</head>
+<body>
+</body>
+</html>

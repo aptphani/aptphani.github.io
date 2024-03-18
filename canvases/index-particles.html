@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Particle Alphabet Animation</title>
+    <style>
+        body, html { margin: 0; padding: 0; overflow: hidden; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+<canvas id="particle-canvas"></canvas>
+<script>
+    var particleAlphabet = {
+        Particle: function(x, y) {
+            this.x = x;
+            this.y = y;
+            this.radius = 3.5;
+            this.draw = function(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, this.radius, this.radius);
+                ctx.restore();
+            };
+        },
+        init: function(canvas) {
+            this.canvas = canvas;
+            this.ctx = this.canvas.getContext('2d');
+            this.W = canvas.width = window.innerWidth;
+            this.H = canvas.height = window.innerHeight;
+            this.particlePositions = [];
+            this.particles = [];
+            this.tmpCanvas = document.createElement('canvas');
+            this.tmpCtx = this.tmpCanvas.getContext('2d');
+
+            setInterval(() => {
+                this.changeLetter();
+                this.getPixels(this.tmpCanvas, this.tmpCtx);
+            }, 1200);
+
+            this.makeParticles(1000);
+            this.animate();
+        },
+        currentPos: 0,
+        changeLetter: function() {
+            var letters = 'APT </>'.split('');
+            this.time = letters[this.currentPos];
+            this.currentPos = (this.currentPos + 1) % letters.length;
+        },
+        makeParticles: function(num) {
+            for (var i = 0; i <= num; i++) {
+                this.particles.push(new this.Particle(this.W / 2 + Math.random() * 400 - 200, this.H / 2 + Math.random() * 400 - 200));
+            }
+        },
+        getPixels: function(canvas, ctx) {
+            var keyword = this.time,
+                gridX = 6,
+                gridY = 6;
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            ctx.fillStyle = 'red';
+            ctx.font = 'italic bold 330px Noto Serif';
+            ctx.fillText(keyword, canvas.width / 2 - ctx.measureText(keyword).width / 2, canvas.height / 2 + 100);
+            var idata = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            var buffer32 = new Uint32Array(idata.data.buffer);
+            if (this.particlePositions.length > 0) this.particlePositions = [];
+            for (var y = 0; y < canvas.height; y += gridY) {
+                for (var x = 0; x < canvas.width; x += gridX) {
+                    if (buffer32[y * canvas.width + x]) {
+                        this.particlePositions.push({x: x, y: y});
+                    }
+                }
+            }
+        },
+        animateParticles: function() {
+            var p, pPos;
+            for (var i = 0, num = this.particles.length; i < num; i++) {
+                p = this.particles[i];
+                pPos = this.particlePositions[i];
+                if (pPos) {
+                    p.x += (pPos.x - p.x) * .3;
+                    p.y += (pPos.y - p.y) * .3;
+                    p.draw(this.ctx);
+                }
+            }
+        },
+        animate: function() {
+            requestAnimationFrame(this.animate.bind(this));
+            this.ctx.fillStyle = 'rgba(23, 41, 58, .8)';
+            this.ctx.fillRect(0, 0, this.W, this.H);
+            this.animateParticles();
+        }
+    };
+
+    window.onload = function() {
+        var canvas = document.getElementById('particle-canvas');
+        particleAlphabet.init(canvas);
+    };
+</script>
+</body>
+</html>
