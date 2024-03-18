@@ -14,7 +14,7 @@ class Particle {
     }
 }
 
-export class FrontFace {
+export default class FrontFace {
     constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
         if (!this.canvas) {

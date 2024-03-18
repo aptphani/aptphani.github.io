@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-export class TopFace {
+export default class TopFace {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
         if (!this.container) {

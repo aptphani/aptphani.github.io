@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
 
-export class RightFace {
+export default class RightFace {
     constructor() {
         this.birds = [];
         this.init();

@@ -83,7 +83,7 @@ class Particle {
     }
 }
 
-export class LeftFace {
+export default class LeftFace {
     constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext("2d");

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-export class BottomFace {
+export default class BottomFace {
     constructor() {
         this.init();
     }
