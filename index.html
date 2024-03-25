@@ -1,134 +1,255 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>
-      Interactive Three.js Scene with Face Names and Laser Animation
-    </title>
-    <style>
-      body {
-        margin: 0;
+<head>
+  <meta charset="UTF-8">
+  <title>Welcome to Our Digital Frontier</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background-color: black;
+      color: white;
+      font-family: 'Victor Mono', monospace;
+    }
+    #smiley{
+      font-size: 54pt;
+    }
+    input, textarea {
+      font-size: 22px;
+      display: block;
+      width: 100%;
+      height: 100%;
+      padding: 5px 10px;
+      background: none;
+      background-image: none;
+      border: 1px solid lightgreen; /* Updated color reference without quotes */
+      color: white; /* Updated color reference without quotes */
+      border-radius: 5px; /* Rounded corners */
+      transition: border-color .25s ease, box-shadow .25s ease;
+      &:focus {
+        outline: 0;
+        border-color: rgba(15, 165, 60, 1); /* Ensure the border color is visible on focus */
+        box-shadow: 0 0 0 2px rgba(15, 165, 60, 0.5); /* Optional: Add a subtle box-shadow on focus */
       }
+    }
+    
+    #main-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+    #narrative {
+      position: absolute;
+      width: 75%;
+      height: 80%;
+      top: 20%;
+      left: 10%;
+      z-index: 2;
+    }
+    .narrative-part {
+      display: none;
+      height: 50px;
+      font-size: 24pt;
+      opacity: 0;
+      margin-top: 35px;
+    }
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      opacity: 0.7;
+    }
+    
+.button {
+  text-align: center;
+  text-transform: uppercase;
+  cursor: pointer;
+  font-size: 20px;
+  letter-spacing: 4px;
+  position: relative;
+  background-color: #16a085;
+  border: none;
+  color: #fff;
+  padding: 20px;
+  width: 200px;
+  text-align: center;
+  transition-duration: 0.4s;
+  overflow: hidden;
+  box-shadow: 0 5px 15px #193047;
+  border-radius: 4px;
+  top:-15px;
+}
 
-      Copy code canvas {
-        display: block;
-      }
+.button:hover {
+  background: #fff;
+  box-shadow: 0px 2px 10px 5px #1abc9c;
+  color: #000;
+}
 
-      #modal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0%;
-        width: 100%;
-        height: 100%;
-        z-index: 999;
-        background-color: rgb(255, 254, 254);
-        border-radius: 5px;
-        box-shadow: 0 0 10px rgba(47, 4, 122, 0.5);
-        padding: 20px;
-        justify-content: center;
-        align-items: center;
-      }
+.button:after {
+  content: "";
+  background: #1abc9c;
+  display: block;
+  position: absolute;
+  padding-top: 0%;
+  padding-left: 0%;
+  margin-left: -20px !important;
+  margin-top: -0%;
+  opacity: 0;
+  transition: all 0.8s
+}
 
-      #modal > canvas {
-        width: 90%;
-        height: 90%;
-        background-image: radial-gradient(rgb(3, 6, 106), rgb(0, 0, 41));
-        display: block;
-        position: absolute;
-        top: 5%;
-        left: 5%;
-        margin: auto;
-      }
+.button:active:after {
+  padding: 0;
+  margin: 0;
+  opacity: 1;
+  transition: 0s
+}
 
-      #modal > button {
-        position: absolute;
-        top: -8%;
-        right: 3%;
-        display: block;
-        background: rgb(230, 133, 133);
-        color: black;
-        font-size: 24px;
-        cursor: pointer;
-        width: 30px;
-        height: 30px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-        border-color: black;
-        border-width: 2px;
-        border-style: solid;
-      }
-    </style>
-  </head>
-  <body>
-    <script type="importmap">
-      {
-        "imports": {
-          "three": "https://unpkg.com/three@0.156.0/build/three.module.js",
-          "three/addons/": "https://unpkg.com/three@0.156.0/examples/jsm/",
-          "tween": "https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.esm.min.js"
+.button:focus { outline:0; }
+    input {
+      font-size: 44pt;
+      padding: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="main-container">
+    <canvas id="matrix-rain-canvas"></canvas>
+    <div id="narrative">
+      <!-- Initial narrative parts -->
+      <div class="narrative-part">Welcome to APT! Your Behind-the-Scenes Coding Powerhouse.</div>
+      <div class="narrative-part">Embark on a journey tailored to your curiosity and professional interests.</div>
+      <div class="narrative-part">Please enter your name (only 3 characters please) <span id="smiley">&#9786;</span> you will thank us later!: <input type="text" id="userName" maxlength="3"></div>
+      
+      <!-- Parts to be displayed after name entry -->
+      <div class="narrative-part" id="personalized-welcome">Thank you, <span id="userNameDisplay"></span>. Please, choose how you wish to delve into our world:</div>
+      <div class="narrative-part" id="explore"><span class="button">Explore</span> our foundation, principles, and the vision that drives us.</div>
+      <div class="narrative-part" id="experience"><span class="button">Experience</span> our expertise through interactive demonstrations that highlight our innovative solutions.</div>
+    </div>
+  </div>
+  <script>
+    const canvas = document.getElementById('matrix-rain-canvas');
+    const ctx = canvas.getContext('2d');
+    let isNamed = false;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+document.addEventListener('DOMContentLoaded', function() {
+  // Select the 'Explore' button span directly within the '#explore' div
+  const exploreSpan = document.querySelector('#explore .button');
+
+  exploreSpan.addEventListener('click', function() {
+    fetch('index.php') // Make sure the path to 'index.php' is correct
+      .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
         }
+        return response.text();
+      })
+      .then(html => {
+        document.open();
+        document.write(html);
+        document.close();
+      })
+      .catch(error => console.error('Failed to load page: ', error));
+  });
+});
+
+    // Matrix rain effect initialization
+    let charset = "<A P T / >".split(""); // Initial charset assignment based on current localStorage
+
+function getCharset() {
+  const storedName = localStorage.getItem("userName");
+  return (isNamed && storedName) ? storedName.split("") : "<A P T / >".split("");
+}
+
+function updateCharset() {
+  charset = getCharset(); // Update charset from localStorage
+}
+
+    const columns = canvas.width / 20;
+    let drops = Array(Math.floor(columns)).fill(1);
+
+    function drawMatrixRain() {
+      updateCharset();
+      ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.font = "16px 'Victor Mono'";
+      for (let i = 0; i < drops.length; i++) {
+        const text = charset[Math.floor(Math.random() * charset.length)];
+        ctx.fillStyle = "#0F0";
+        ctx.fillText(text, i * 20, drops[i] * 20);
+        if (drops[i] * 20 > canvas.height && Math.random() > 0.975) drops[i] = 0;
+        drops[i]++;
       }
-    </script>
-    <script type="module">
-      import * as THREE from "three";
-      import TWEEN from "tween";
-      const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(
-        75,
-        window.innerWidth / window.innerHeight,
-        0.1,
-        1000
-      );
-      const renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.shadowMap.enabled = true;
-      document.body.appendChild(renderer.domElement);
-      const faceNames = ["front", "back", "top", "bottom", "right", "left"];
-      const planeGeometry = new THREE.PlaneGeometry(4, 4);
-      const cube = new THREE.Group();
-      faceNames.forEach((faceName, index) => {
-        const plane = new THREE.Mesh(
-          planeGeometry,
-          new THREE.MeshBasicMaterial()
-        );
-        plane.name = faceName;
-        cube.add(plane);
-        const canvas = document.createElement("canvas");
-        canvas.width = 512;
-        canvas.height = 512;
-        canvas.id = `${faceName}FaceCanvas`;
-        document.body.appendChild(canvas);
-        switch (faceName) {
-          case "front":
-            initializeFrontFaceAnimation(canvas.id);
-            break;
-          case "back":
-            initializeBackFaceAnimation(canvas.id);
-            break;
-          case "top":
-            initializeTopFaceAnimation(canvas.id);
-            break;
-          case "bottom":
-            initializeBottomFaceAnimation(canvas.id);
-            break;
-          case "right":
-            initializeRightFaceAnimation(canvas.id);
-            break;
-          case "left":
-            initializeLeftFaceAnimation(canvas.id);
-            break;
+    }
+    setInterval(drawMatrixRain, 50);
+
+    window.onload = function () {
+      const userNameInput = document.getElementById('userName');
+      let narrativeParts = document.querySelectorAll('.narrative-part');
+
+      function fadeInElement(index, onCompleteCallback) {
+        narrativeParts[index].style.display = 'block';
+        let tween = new TWEEN.Tween({ opacity: 0 })
+          .to({ opacity: 1 }, 1200)
+          .onUpdate(function (object) {
+            narrativeParts[index].style.opacity = object.opacity;
+          })
+          .onComplete(onCompleteCallback)
+          .start();
+      }
+
+      function fadeOutElement(index, onCompleteCallback) {
+        let tween = new TWEEN.Tween({ opacity: 1 })
+          .to({ opacity: 0 }, 200)
+          .onUpdate(function (object) {
+            narrativeParts[index].style.opacity = object.opacity;
+          })
+          .onComplete(function () {
+            narrativeParts[index].style.display = 'none';
+            if (onCompleteCallback) onCompleteCallback();
+          })
+          .start();
+      }
+
+      // Initial display of the first three narrative parts
+       setTimeout(function() {
+    fadeInElement(0, () => fadeInElement(1, () => fadeInElement(2)));
+  }, 4000);
+
+      userNameInput.addEventListener('input', function () {
+        const userName = userNameInput.value;
+        isNamed = true;
+        localStorage.setItem('userName', userName);
+        if (userName.length === 3) {
+          document.getElementById('userNameDisplay').textContent = userName;
+          // Reverse order of fading out and hiding the first three narrative parts
+          fadeOutElement(2, () => fadeOutElement(1, () => fadeOutElement(0, () => {
+            // After fading out and hiding the initial parts, start displaying the subsequent narrative parts
+            fadeInElement(3, () => fadeInElement(4, () => fadeInElement(5)));
+            // Adjust canvas opacity
+            new TWEEN.Tween({ opacity: 0.5 })
+              .to({ opacity: 0.3 }, 2000)
+              .onUpdate(function (object) {
+                canvas.style.opacity = object.opacity;
+              })
+              .start();
+          })));
         }
-        const texture = new THREE.CanvasTexture(canvas);
-        plane.material.map = texture;
-      }); // Position and rotate planes to form the cube arrangeCubeFaces(cube.children); scene.add(cube); cube.position.set(0, 15, 40); camera.position.set(0, 15, 50); const raycaster = new THREE.Raycaster(); const mouse = new THREE.Vector2(); let isDragging = false; let previousMousePosition = { x: 0, y: 0 }; let lastClickTime = 0; let rotationSpeed = 0.005; document.addEventListener("mousedown", onMouseDown); document.addEventListener("mousemove", onMouseMove); document.addEventListener("mouseup", onMouseUp); document.addEventListener("click", onClick); setupLighting(); createFloor(); animate(); function arrangeCubeFaces(children) { // Front children[0].position.set(0, 0, -2); children[0].rotation.y = Math.PI; // Back children[1].position.set(0, 0, 2); // Top children[2].position.set(0, 2, 0); children[2].rotation.x = -Math.PI / 2; // Bottom children[3].position.set(0, -2, 0); children[3].rotation.x = Math.PI / 2; // Right children[4].position.set(2, 0, 0); children[4].rotation.y = Math.PI / 2; // Left children[5].position.set(-2, 0, 0); children[5].rotation.y = -Math.PI / 2; } function onMouseDown(event) { isDragging = true; previousMousePosition.x = event.clientX; previousMousePosition.y = event.clientY; } function onMouseMove(event) { if (isDragging) { const deltaMove = { x: event.clientX - previousMousePosition.x, y: event.clientY - previousMousePosition.y, }; const rotateAngleX = ((deltaMove.y * Math.PI) / 180) * 0.5; const rotateAngleY = ((deltaMove.x * Math.PI) / 180) * 0.5; cube.rotation.x += rotateAngleX; cube.rotation.y += rotateAngleY; previousMousePosition = { x: event.clientX, y: event.clientY }; } } function onMouseUp() { isDragging = false; } function onClick(event) { if (!isDragging) { mouse.x = (event.clientX / window.innerWidth) * 2 - 1; mouse.y = -(event.clientY / window.innerHeight) * 2 + 1; raycaster.setFromCamera(mouse, camera); const intersects = raycaster.intersectObjects(cube.children); if (intersects.length > 0) { const now = Date.now(); const delta = now - lastClickTime; lastClickTime = now; if (delta < 300) { new TWEEN.Tween(cube.position) .to({ x: -50, y: 5, z: -20 }, 1000) .easing(TWEEN.Easing.Exponential.InOut) .onComplete(function () { rotationSpeed = 0; const clickedFaceName = intersects[0].object.name; showModal(clickedFaceName); }) .start(); } else { } } } } function setupLighting() { const spotLight = new THREE.SpotLight(0xffffff, 1); spotLight.position.set(0, 20, 20); spotLight.angle = Math.PI / 2; spotLight.penumbra = 0.1; spotLight.decay = 0; spotLight.distance = 1000; spotLight.castShadow = true; scene.add(spotLight); } function createFloor() { const floorGeometry = new THREE.PlaneGeometry(200, 200); const floorMaterial = new THREE.MeshStandardMaterial({ color: 0xf7f5da, }); const floor = new THREE.Mesh(floorGeometry, floorMaterial); floor.rotation.x = -Math.PI / 2; floor.position.y = -5; floor.receiveShadow = true; scene.add(floor); } function animate() { if (!isDragging) { cube.rotation.x += rotationSpeed; cube.rotation.y += rotationSpeed; } requestAnimationFrame(animate); TWEEN.update(); renderer.render(scene, camera); }
-    </script>
-    <script src="https://cdn.babylonjs.com/babylon.js"></script>
-    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
-    <script>
-      function showModal(faceName, cube) { // ... (keep the existing showModal function code) } // ... (keep the existing canvas animation functions)
-    </script>
-  </body>
+      });
+
+      function animate(time) {
+        requestAnimationFrame(animate);
+        TWEEN.update(time);
+      }
+      animate(); // Start the animation loop
+    };
+  </script>
+</body>
 </html>
