@@ -407,7 +407,7 @@
 
       let particlePositions = [];
       let particles = [];
-      const letters = "APT </>".split("");
+      const letters = localStorage.getItem("userName") ? localStorage.getItem("userName") :"123";
       let currentPos = 0;
       let W = canvas.width;
       let H = canvas.height;
@@ -536,7 +536,7 @@
         "#9400D3", // Dark Violet
       ];
 
-      const userName = localStorage.getItem("userName") || "<APT/>";
+      const userName = localStorage.getItem("userName")? localStorage.getItem("userName").split('') :"<APT/>".split('');;
 
       class Particle {
         constructor(effect, x, y) {
@@ -693,8 +693,8 @@
 
       // Wave parameters
       const SEPARATION = 100,
-        AMOUNTX = 50,
-        AMOUNTY = 50;
+        AMOUNTX = 20,
+        AMOUNTY = 30;
       let count = 0;
 
       // Store all planes for animation
@@ -703,7 +703,8 @@
       for (let ix = 0; ix < AMOUNTX; ix++) {
         for (let iy = 0; iy < AMOUNTY; iy++) {
           const index = Math.floor(Math.random() * 3);
-          const letter = ["A", "P", "T"][index];
+          const letters = localStorage.getItem("userName")? localStorage.getItem("userName").split('') :"<APT/>".split('');
+          const letter = letters[index];
           const plane = createLetterParticle(
             letter,
             ix,
@@ -818,7 +819,7 @@
       const glowLayer = new BABYLON.GlowLayer("glow", scene);
       glowLayer.intensity = 0.6;
 
-      const letters = ["A", "P", "T"];
+      const letters = localStorage.getItem("userName")? localStorage.getItem("userName").split('') :"<APT/>".split('');;
       const planets = [];
 
       const RADIUS = 100; // Radius of the spherical volume
