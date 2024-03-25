@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130.01 40.18">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #fff;
+      }
+
+      .cls-2 {
+        font-family: BradleyHandITC, 'Bradley Hand ITC';
+        font-size: 7px;
+        letter-spacing: .14em;
+      }
+
+      .cls-2, .cls-3 {
+        fill: #231f20;
+      }
+
+      .cls-4 {
+        fill: #be1e2d;
+      }
+
+      .cls-5 {
+        fill: #2e3192;
+      }
+
+      .cls-6 {
+        letter-spacing: .05em;
+      }
+
+      .cls-6, .cls-7, .cls-8 {
+        font-size: 7.28px;
+      }
+
+      .cls-7 {
+        letter-spacing: .06em;
+      }
+
+      .cls-3 {
+        font-family: MSReferenceSansSerif, 'MS Reference Sans Serif';
+      }
+
+      .cls-9 {
+        font-size: 9.19px;
+        letter-spacing: .06em;
+      }
+
+      .cls-8 {
+        letter-spacing: .06em;
+      }
+    </style>
+  </defs>
+  <text class="cls-3" transform="translate(.28 36.16) scale(.99) skewX(-8.49)"><tspan class="cls-6" x="0" y="0">y</tspan><tspan class="cls-7" x="4.67" y="0">our in-house </tspan><tspan class="cls-9" x="59.06" y="0">&lt;</tspan><tspan class="cls-8" x="67.11" y="0">oding </tspan><tspan class="cls-9" x="92.3" y="0">/&gt;</tspan><tspan class="cls-7" x="105.05" y="0">artner</tspan></text>
+  <text class="cls-2" transform="translate(10.53 5.27) scale(1.02 1)"><tspan x="0" y="0">Agency Programming Team</tspan></text>
+  <text/>
+  <g>
+    <path class="cls-4" d="m63.3,29.41c.11-.12.27-.46.48-1,.21-.54.36-1.35.46-2.42l1.42-15.72c.14-1.52.11-2.67-.09-3.45h3.06c-.11.12-.27.46-.48,1-.21.54-.36,1.35-.46,2.42l-1.42,15.72c-.07.78-.09,1.45-.09,2,0,.55.07,1.04.17,1.45h-3.06Z"/>
+    <path class="cls-1" d="m63.91,29.44c.07-.12.17-.46.3-1,.13-.55.26-1.35.36-2.42l1.54-15.75c.15-1.52.19-2.68.13-3.46h1.59c-.07.12-.17.46-.3,1-.13.55-.26,1.35-.36,2.42l-1.54,15.75c-.07.78-.12,1.45-.15,2.01-.02.56-.02,1.04.02,1.45h-1.59Z"/>
+    <path class="cls-5" d="m82.87,20.11l-15.56,5.04.56-4.02,10.6-3.61-9.58-3.64.56-4.02,14.13,5.13-.72,5.12Z"/>
+    <path class="cls-5" d="m46.42,19.9l14.12,5.21.56-4.02-9.57-3.72,10.59-3.53.56-4.02-15.55,4.96-.72,5.12Z"/>
+  </g>
+</svg>

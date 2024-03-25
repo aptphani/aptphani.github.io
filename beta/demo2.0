@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APT</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <style>
+     #preloader {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: black;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 100;
+    }
+    #loading-text {
+        color: white;
+        font-size: 2em;
+    }
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #switch-button {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<div id="preloader" style="display: none;">Loading...</div>
+
+    <div id="canvas-container">
+        <button id="switch-button">Illuminate Creativity</button>
+    </div>
+    <div id="main" style="display: none;">
+        <!-- Insert your main content here -->
+    </div>
+     <script src="jquery.min.js"></script>
+    <script src="scripts/three.min.js"></script>
+    <script src="scripts/OrbitControls.js"></script>
+    <script src="scripts/dem-main.js"></script>
+</body>
+</html>
