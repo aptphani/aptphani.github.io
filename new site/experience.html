@@ -107,14 +107,14 @@
       renderer.shadowMap.enabled = true;
       document.body.appendChild(renderer.domElement);
 
-      const faceNames = ["front", "back", "top", "bottom", "right", "left"];
+      const faceNames = ["front", "top", "bottom", "right", "left", "back"];
       const videoPaths = [
-        "/videos/Video1.mp4",
-        "/videos/Video6.mp4",
-        "/videos/Video2.mp4",
-        "/videos/Video3.mp4",
-        "/videos/Video4.mp4",
-        "/videos/Video5.mp4",
+        "Video1.mp4",
+        "Video2.mp4",
+        "Video3.mp4",
+        "Video4.mp4",
+        "Video5.mp4",
+        "Video6.mp4",
       ];
       const videoMaterials = videoPaths.map(
         (path) =>
@@ -426,7 +426,7 @@
 
         let particlePositions = [];
         let particles = [];
-        const letters = "<APT/>".split("");
+        const letters = localStorage.getItem("userName") ? localStorage.getItem("userName") :"<APT/>";
         let currentPos = 0;
         let W = canvas.width;
         let H = canvas.height;
@@ -555,7 +555,7 @@
           "#9400D3", // Dark Violet
         ];
 
-        const userName = localStorage.getItem("userName") || "<APT/>";
+        const userName = localStorage.getItem("userName") ? localStorage.getItem("userName") :"<APT/>";
 
         class Particle {
           constructor(effect, x, y) {
@@ -678,124 +678,134 @@
         });
       }
       //BottomFace Animation
-      async function initializeBottomFaceAnimation(canvasId) {
-        if (typeof BABYLON === "undefined") {
-          await import("https://cdn.babylonjs.com/babylon.js");
-        }
-
+      function initializeBottomFaceAnimation(canvasId) {
         const canvas = document.getElementById(canvasId);
         if (!canvas) {
-          console.error("BottomFace canvas element not found");
+          console.error("Canvas element not found");
           return;
         }
-
-        const engine = new BABYLON.Engine(canvas, true);
-        const scene = new BABYLON.Scene(engine);
-        scene.clearColor = new BABYLON.Color4(1 / 255, 4 / 255, 43 / 255, 1); // Dark navy blue background
-
-        const camera = new BABYLON.ArcRotateCamera(
-          "Camera",
-          -Math.PI / 2,
-          Math.PI / 4,
-          1000,
-          BABYLON.Vector3.Zero(),
-          scene
-        );
-        camera.setTarget(BABYLON.Vector3.Zero());
-        camera.attachControl(canvas, true);
-
-        const light = new BABYLON.HemisphericLight(
-          "light1",
-          new BABYLON.Vector3(1, 1, 0),
-          scene
-        );
-
-        // Wave parameters
-        const SEPARATION = 100,
-          AMOUNTX = 50,
-          AMOUNTY = 50;
-        let count = 0;
-
-        // Store all planes for animation
-        const planes = [];
-
-        for (let ix = 0; ix < AMOUNTX; ix++) {
-          for (let iy = 0; iy < AMOUNTY; iy++) {
-            const index = Math.floor(Math.random() * 3);
-            const letter = ["A", "P", "T"][index];
-            const plane = createLetterParticle(
-              letter,
-              ix,
-              iy,
-              SEPARATION,
-              scene
-            );
-            planes.push(plane);
-          }
+      
+        // Initialize WebGL context
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (!gl) {
+          console.error("Unable to initialize WebGL. Your browser may not support it.");
+          return;
         }
-
-        function createLetterParticle(letter, ix, iy, SEPARATION, scene) {
-          const dynamicTexture = new BABYLON.DynamicTexture(
-            "DynamicTexture",
-            { width: 512, height: 512 },
-            scene,
-            true
-          );
-          dynamicTexture.drawText(
-            letter,
-            75,
-            400,
-            "bold 440px Arial",
-            "#07f7df",
-            "transparent"
-          );
-          dynamicTexture.hasAlpha = true;
-
-          const plane = BABYLON.MeshBuilder.CreatePlane(
-            "textPlane",
-            { size: 20 },
-            scene
-          );
-          plane.position.x = ix * SEPARATION - (AMOUNTX * SEPARATION) / 2;
-          plane.position.z = iy * SEPARATION - (AMOUNTY * SEPARATION) / 2;
-          plane.position.y = 0;
-
-          const material = new BABYLON.StandardMaterial(
-            "TextPlaneMaterial",
-            scene
-          );
-          material.diffuseTexture = dynamicTexture;
-          material.useAlphaFromDiffuseTexture = true;
-          plane.material = material;
-
-          return plane;
-        }
-
-        scene.registerBeforeRender(function () {
-          const time = performance.now();
-
-          for (let i = 0, l = planes.length; i < l; i++) {
-            const plane = planes[i];
-            const ix = i % AMOUNTX,
-              iy = Math.floor(i / AMOUNTX);
-
-            plane.position.y =
-              Math.sin((ix + count) * 0.3) * 50 +
-              Math.sin((iy + count) * 0.5) * 50;
-            plane.rotation.z = Math.sin((ix + count) * 0.3) * Math.PI * 0.2;
+      
+        // Vertex shader program
+        const vsSource = `
+          attribute vec4 aVertexPosition;
+          uniform float uPointSize;
+          void main(void) {
+            gl_Position = aVertexPosition;
+            gl_PointSize = uPointSize;
           }
-
-          count += 0.1;
-        });
-
-        engine.runRenderLoop(() => {
-          scene.render();
-        });
-
-        window.addEventListener("resize", () => {
-          engine.resize();
-        });
+        `;
+      
+        // Fragment shader program
+        const fsSource = `
+          precision mediump float;
+          uniform vec4 uColor;
+          void main(void) {
+            gl_FragColor = uColor;
+          }
+        `;
+      
+        // Initialize shader program
+        const shaderProgram = initShaderProgram(gl, vsSource, fsSource);
+        const programInfo = {
+          program: shaderProgram,
+          attribLocations: {
+            vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
+          },
+          uniformLocations: {
+            pointSize: gl.getUniformLocation(shaderProgram, 'uPointSize'),
+            color: gl.getUniformLocation(shaderProgram, 'uColor'),
+          },
+        };
+      
+        // Define particles here (e.g., positions, sizes)
+        // For simplicity, we're just creating a single particle at the center
+        const particles = [
+          0.0, 0.0, 0.0,
+        ];
+      
+        // Create buffer for particle positions
+        const positionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(particles), gl.STATIC_DRAW);
+      
+        function render() {
+          gl.clearColor(0.0, 0.0, 0.0, 1.0);  // Clear to black, fully opaque
+          gl.clearDepth(1.0);                 // Clear everything
+          gl.enable(gl.DEPTH_TEST);           // Enable depth testing
+          gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
+      
+          // Clear the canvas before we start drawing on it.
+          gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      
+          // Tell WebGL to use our program when drawing
+          gl.useProgram(programInfo.program);
+      
+          // Set shader uniforms
+          gl.uniform1f(programInfo.uniformLocations.pointSize, 10.0); // Set point size
+          gl.uniform4f(programInfo.uniformLocations.color, 1.0, 1.0, 1.0, 1.0); // Set color to white
+      
+          // Set the positions of the vertices
+          gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+          gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, 3, gl.FLOAT, false, 0, 0);
+          gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+      
+          gl.drawArrays(gl.POINTS, 0, particles.length / 3);
+          requestAnimationFrame(render);
+        }
+        requestAnimationFrame(render);
       }
+      
+      // Initialize a shader program; this is where all the lighting
+      // for the vertices and so forth is established.
+      function initShaderProgram(gl, vsSource, fsSource) {
+        const vertexShader = loadShader(gl, gl.VERTEX_SHADER, vsSource);
+        const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
+      
+        // Create the shader program
+        const shaderProgram = gl.createProgram();
+        gl.attachShader(shaderProgram, vertexShader);
+        gl.attachShader(shaderProgram, fragmentShader);
+        gl.linkProgram(shaderProgram);
+      
+        // If creating the shader program failed, alert
+        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+          alert('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
+          return null;
+        }
+      
+        return shaderProgram;
+      }
+      
+      // Creates a shader of the given type, uploads the source and
+      // compiles it.
+      function loadShader(gl, type, source) {
+        const shader = gl.createShader(type);
+      
+        // Send the source to the shader object
+        gl.shaderSource(shader, source);
+      
+        // Compile the shader program
+        gl.compileShader(shader);
+      
+        // See if it compiled successfully
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+          alert('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
+          gl.deleteShader(shader);
+          return null;
+        }
+      
+        return shader;
+      }
+      
+      // Use this function to start the animation
+      // initializeBottomFaceAnimation('yourCanvasId');
       //RightFace Animation
       async function initializeRightFaceAnimation(canvasId) {
         if (typeof BABYLON === "undefined") {
@@ -836,7 +846,7 @@
         const glowLayer = new BABYLON.GlowLayer("glow", scene);
         glowLayer.intensity = 0.6;
 
-        const letters = ["A", "P", "T"];
+        const letters = localStorage.getItem("userName") ? localStorage.getItem("userName").split('') : ["A", "P", "T"];
         const planets = [];
 
         const RADIUS = 100; // Radius of the spherical volume
@@ -939,7 +949,7 @@
         let tick;
 
         const config = {
-          text: localStorage.getItem("userName") || "<APT/>",
+          text: localStorage.getItem("userName") ? localStorage.getItem("userName") :"<APT/>",
           widthToSpikeLengthRatio: 0.054,
         };
 
@@ -1218,7 +1228,7 @@
         }
   
         function createTextParticles() {
-          const lettersOptions = ["A", "P", "T"];
+          const lettersOptions = localStorage.getItem("userName") ? localStorage.getItem("userName").split('') :["A", "P", "T"];
   
           lettersOptions.forEach((letter) => {
             for (let i = 0; i < 300; i++) {
@@ -1434,15 +1444,11 @@
             box.position.z = j * SEPARATION - (AMOUNTY * SEPARATION) / 2;
             box.position.y = 0; // Adjust as necessary
 
-            // Apply materials, textures, or other properties as needed
           }
         }
 
-        // This could also return a more complex particle system if needed
-      }
 
-      // Usage example, assuming you have a specific canvas element for this
-      //TopFace Animation
+      }
     </script>
   </body>
 </html>
