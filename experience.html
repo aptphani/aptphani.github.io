@@ -77,6 +77,8 @@
   </head>
 
   <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+    
     <script type="importmap">
       {
         "imports": {
@@ -413,7 +415,7 @@
         }, 2000000); // Auto-remove after 10 seconds
       }
 
-      //FrontFace Animation
+      //FrontFace Animation <apt> SINGLE PARTICLE
       function initializeFrontFaceAnimation(canvasId) {
         const canvas = document.getElementById(canvasId);
         if (!canvas) {
@@ -528,7 +530,7 @@
         makeParticles(10000);
         animate();
       }
-      //BackFace Animation
+      //BackFace Animation <apt> PARTICLE INTERACTION
       function initializeBackFaceAnimation() {
         const canvas = document.getElementById("backFaceCanvas");
         if (!canvas) {
@@ -677,7 +679,7 @@
           effect.wrapText(userName); // Re-generate text and particles for new dimensions
         });
       }
-      //BottomFace Animation
+      //BottomFace Animation WAVY
       async function initializeBottomFaceAnimation(canvasId) {
         if (typeof BABYLON === "undefined") {
           await import("https://cdn.babylonjs.com/babylon.js");
@@ -797,129 +799,105 @@
           engine.resize();
         });
       }
-      //RightFace Animation
+      //RightFace Animation UNIVERSE
       async function initializeRightFaceAnimation(canvasId) {
         if (typeof BABYLON === "undefined") {
           await import("https://cdn.babylonjs.com/babylon.js");
-          await import(
-            "https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"
-          );
+          await import("https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js");
         }
-
+      
         const canvas = document.getElementById(canvasId);
         if (!canvas) {
           console.error("RightFace canvas element not found");
           return;
         }
-
+      
         const engine = new BABYLON.Engine(canvas, true);
         const scene = new BABYLON.Scene(engine);
-        scene.clearColor = new BABYLON.Color4(0.03, 0.03, 0.12, 1); // Dark navy blue background
-        const sphericalContainer = new BABYLON.TransformNode(
-          "sphericalContainer"
-        );
-        const camera = new BABYLON.ArcRotateCamera(
-          "Camera",
-          -Math.PI / 2,
-          Math.PI / 2,
-          130,
-          new BABYLON.Vector3(0, 0, 0),
-          scene
-        );
+        scene.clearColor = new BABYLON.Color4(0.03, 0.03, 0.12, 1);
+        const sphericalContainer = new BABYLON.TransformNode("sphericalContainer");
+        const camera = new BABYLON.ArcRotateCamera("Camera", -Math.PI / 2, Math.PI / 2, 130, new BABYLON.Vector3(0, 0, 0), scene);
         camera.attachControl(canvas, true);
-
-        const light = new BABYLON.HemisphericLight(
-          "light1",
-          new BABYLON.Vector3(1, 1, 0),
-          scene
-        );
-
+        const light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 1, 0), scene);
         const glowLayer = new BABYLON.GlowLayer("glow", scene);
         glowLayer.intensity = 0.6;
-
+      
+        const baseMesh = BABYLON.MeshBuilder.CreatePlane("textPlaneBase", { size: 1 }, scene);
+        baseMesh.isVisible = false;
+      
+        const material = new BABYLON.StandardMaterial("TextPlaneMaterial", scene);
+        material.emissiveColor = BABYLON.Color3.FromHexString("#00FF00");
+        material.useAlphaFromDiffuseTexture = true;
+        baseMesh.material = material;
+      
         const letters = localStorage.getItem("userName") ? localStorage.getItem("userName").split('') : ["A", "P", "T"];
+        const RADIUS = 100;
+        const NUM_PLANETS = 1500;
         const planets = [];
-
-        const RADIUS = 100; // Radius of the spherical volume
-        const NUM_PLANETS = 1500; // Total number of planets
-
+        const dynamicTextures = {};
+      
+        function createDynamicTexture(letter) {
+          const size = 50;
+          const dynamicTexture = new BABYLON.DynamicTexture("DynamicTexture", { width: size, height: size }, scene, true);
+          dynamicTexture.drawText(letter, 10, 40, "bold 40px Arial", "#00FF00", "transparent", true);
+          dynamicTexture.hasAlpha = true;
+          return dynamicTexture;
+        }
+      
         for (let i = 0; i < NUM_PLANETS; i++) {
           const letter = letters[i % letters.length];
-          const planet = createLetterPlanet(letter, i, RADIUS, scene);
+          if (!dynamicTextures[letter]) {
+            dynamicTextures[letter] = createDynamicTexture(letter);
+          }
+          const planet = createLetterPlanet(letter, i, RADIUS, scene, baseMesh.createInstance(`textPlaneInstance${i}`), dynamicTextures[letter]);
           planets.push(planet);
         }
+      
         engine.runRenderLoop(() => {
-          sphericalContainer.rotation.y += 0.001; // Adjust the value for different speeds
+          sphericalContainer.rotation.y += 0.001;
           scene.render();
         });
-        let mouseWorldPosition = new BABYLON.Vector3(0, 0, 0);
-        window.addEventListener("mousemove", function (event) {
-          const pickResult = scene.pick(event.clientX, event.clientY);
-          if (pickResult.hit) {
-            mouseWorldPosition = pickResult.pickedPoint;
-          }
-        });
-        function createLetterPlanet(letter, index, radius, scene) {
-          const size = 50; // Size of the dynamic texture
-          const dynamicTexture = new BABYLON.DynamicTexture(
-            "DynamicTexture",
-            { width: size, height: size },
-            scene,
-            true
-          );
-          dynamicTexture.drawText(
-            letter,
-            10,
-            40,
-            "bold 40px Arial",
-            "#07F7DF",
-            "transparent",
-            true
-          );
-          dynamicTexture.hasAlpha = true;
-
-          const plane = BABYLON.MeshBuilder.CreatePlane(
-            "textPlane",
-            { size: 1 },
-            scene
-          );
-          plane.parent = sphericalContainer;
-
-          // Calculate the position of the planet within the spherical volume
-          const r = Math.cbrt(Math.random()) * radius;
-          const theta = Math.random() * 2 * Math.PI;
-          const phi = Math.acos(2 * Math.random() - 1);
-          const x = r * Math.sin(phi) * Math.cos(theta);
-          const y = r * Math.sin(phi) * Math.sin(theta);
-          const z = r * Math.cos(phi);
-
-          plane.position = new BABYLON.Vector3(x, y, z);
-          plane.lookAt(new BABYLON.Vector3(0, 0, 0)); // Make the plane face the center
-
-          const material = new BABYLON.StandardMaterial(
-            "TextPlaneMaterial",
-            scene
-          );
-          material.diffuseTexture = dynamicTexture;
-          material.emissiveColor = new BABYLON.Color3.FromHexString("#07F7DF"); // Bright neon blue
-          material.useAlphaFromDiffuseTexture = true;
-          plane.material = material;
-
-          glowLayer.addIncludedOnlyMesh(plane);
-
-          return plane;
-        }
-
-        engine.runRenderLoop(() => {
-          scene.render();
-        });
-
+      
         window.addEventListener("resize", () => {
           engine.resize();
         });
+      
+        function createLetterPlanet(letter, index, radius, scene, plane, dynamicTexture) {
+          plane.parent = sphericalContainer;
+          const r = Math.cbrt(Math.random()) * radius;
+          const theta = Math.random() * 2 * Math.PI;
+          const phi = Math.acos(2 * Math.random() - 1);
+          plane.position = new BABYLON.Vector3(r * Math.sin(phi) * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta), r * Math.cos(phi));
+          plane.lookAt(BABYLON.Vector3.Zero());
+          baseMesh.material.diffuseTexture = dynamicTexture;
+          glowLayer.addIncludedOnlyMesh(plane);
+          return plane;
+        }
       }
-
-      //LeftFace Animation
+    // Ensure this function correctly applies the texture to the planet mesh, especially the material part.
+    function createLetterPlanet(index, radius, scene, sphericalContainer, texture, glowLayer) {
+      // Use MeshBuilder to create a new plane for each letter.
+      const planetMesh = BABYLON.MeshBuilder.CreatePlane("planet" + index, { size: 2 }, scene); 
+      planetMesh.isVisible = true; // Ensure the mesh is visible.
+  
+      // Calculate position based on index, similar to your setup for placing planets.
+      // This is just an example. Adjust the position calculation as necessary.
+      const phi = index % (Math.PI * 2);
+      const x = radius * Math.cos(phi);
+      const y = radius * Math.sin(phi);
+      const z = 0; // Adjust Z based on your needs or calculations.
+      planetMesh.position = new BABYLON.Vector3(x, y, z);
+  
+      const material = new BABYLON.StandardMaterial("letterMaterial" + index, scene);
+      material.diffuseTexture = texture;
+      material.emissiveTexture = texture; // Ensure the texture emits light.
+      material.useAlphaFromDiffuseTexture = true; // Ensure transparency is used from the diffuse texture.
+  
+      planetMesh.material = material;
+      glowLayer.addIncludedOnlyMesh(planetMesh);
+      planetMesh.parent = sphericalContainer; // Ensure the mesh is attached to the container.
+  }
+  
       function initializeLeftFaceAnimation(canvasId) {
         const canvas = document.getElementById(canvasId);
         if (!canvas) {
@@ -1158,7 +1136,7 @@
         setup();
         draw(1);
       }
-      //TopFace Animation
+      //TopFace Animation // RAIN
       function initializeTopFaceAnimation(canvasId) {
         let engine, scene, camera;
         let letters = [];
