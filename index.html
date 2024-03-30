@@ -70,10 +70,7 @@
       height: 50px;
       font-size: 24pt;
       opacity: 0;
-      margin: 35px;
-    }
-    .narrative-part>p{
-        margin-top:75px;
+      margin-top: 35px;
     }
 
     canvas {
@@ -101,8 +98,7 @@
       overflow: hidden;
       box-shadow: 0 5px 15px #193047;
       border-radius: 4px;
-      display:inline-flex;
-      
+      top: -15px;
     }
 
     .button:hover {
@@ -139,16 +135,6 @@
       font-size: 44pt;
       padding: 10px;
     }
-    
-    @media (min-width: 1745px) {
-  .button {
-    display: inline-block;
-  }
-
-  .text-link {
-    display: none;
-  }
-}
   </style>
 </head>
 
@@ -176,14 +162,12 @@
         wish to delve into our world:
       </div>
       <div class="narrative-part" id="explore">
-       <p> <span class="button">Explore</span>
-         <span class="text-link" onclick="exploreLink()">Explore</span>our foundation, principles, and
-        the vision that drives us.</p>
+        <span class="button">Explore</span> our foundation, principles, and
+        the vision that drives us.
       </div>
       <div class="narrative-part" id="experience">
-        <p><span class="button">Experience</span> 
-        <span class="text-link" onclick="experienceLink()">Experience</span>our expertise through
-        interactive demonstrations that highlight our innovative solutions.</p>
+        <span class="button">Experience</span> our expertise through
+        interactive demonstrations that highlight our innovative solutions.
       </div>
     </div>
   </div>
@@ -193,63 +177,80 @@
     let isNamed = false;
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-  
-    // Variable to hold the preloaded HTML content of 'experience.html'
-    let preloadedExperienceHTML = '';
-  
     document.addEventListener("DOMContentLoaded", function () {
-      // Preload the 'experience.html' content as soon as the page loads
-      fetch('experience.html')
-        .then(response => response.text())
-        .then(html => {
-          preloadedExperienceHTML = html; // Store the HTML content
-        })
-        .catch(error => console.error('Failed to preload experience.html:', error));
-  
+      // Select the 'Explore' button span directly within the '#explore' div
       const exploreSpan = document.querySelector("#explore .button");
       exploreSpan.addEventListener("click", function () {
-        // Utilize preloaded or fetch anew for different content as necessary
-      });
-  
-      const experienceSpan = document.querySelector("#experience .button");
-      experienceSpan.addEventListener("click", function () {
-        if (preloadedExperienceHTML) {
-          document.open();
-          document.write(preloadedExperienceHTML);
-          document.close();
-        } else {
-          console.error('Experience content is not preloaded yet.');
-        }
+        fetch("index.php") // Make sure the path to 'index.php' is correct
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Network response was not ok");
+            }
+            return response.text();
+          })
+          .then((html) => {
+            document.open();
+            document.write(html);
+            document.close();
+          })
+          .catch((error) => console.error("Failed to load page: ", error));
       });
     });
-  
+    const experienceSpan = document.querySelector("#experience .button");
+    experienceSpan.addEventListener("click", function () {
+      fetch("experience.html") // Make sure the path to 'experience.html' is correct
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+          return response.text();
+        })
+        .then((html) => {
+          document.open();
+          document.write(html);
+          document.close();
+        })
+        .catch((error) => console.error("Failed to load page: ", error));
+    });
+
     // Matrix rain effect initialization
-    let charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".split("");
-  
+    let charset = "<A P T / >".split(""); // Initial charset assignment based on current localStorage
+
+    function getCharset() {
+      const storedName = localStorage.getItem("userName");
+      return isNamed && storedName
+        ? storedName.split("")
+        : "<A P T / >".split("");
+    }
+
+    function updateCharset() {
+      charset = getCharset(); // Update charset from localStorage
+    }
+
     const columns = canvas.width / 20;
     let drops = Array(Math.floor(columns)).fill(1);
-  
+
     function drawMatrixRain() {
+      updateCharset();
       ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
-      ctx.font = "20px monospace";
+
+      ctx.font = "24px 'Victor Mono'";
       for (let i = 0; i < drops.length; i++) {
         const text = charset[Math.floor(Math.random() * charset.length)];
         ctx.fillStyle = "#0F0";
         ctx.fillText(text, i * 20, drops[i] * 20);
-        if (drops[i] * 20 > canvas.height && Math.random() > 0.975) {
+        if (drops[i] * 20 > canvas.height && Math.random() > 0.975)
           drops[i] = 0;
-        }
         drops[i]++;
       }
     }
     setInterval(drawMatrixRain, 50);
-  
+
     window.onload = function () {
       const userNameInput = document.getElementById("userName");
       let narrativeParts = document.querySelectorAll(".narrative-part");
-  
+
       function fadeInElement(index, onCompleteCallback) {
         narrativeParts[index].style.display = "block";
         let tween = new TWEEN.Tween({ opacity: 0 })
@@ -260,24 +261,59 @@
           .onComplete(onCompleteCallback)
           .start();
       }
-  
+
+      function fadeOutElement(index, onCompleteCallback) {
+        let tween = new TWEEN.Tween({ opacity: 1 })
+          .to({ opacity: 0 }, 200)
+          .onUpdate(function (object) {
+            narrativeParts[index].style.opacity = object.opacity;
+          })
+          .onComplete(function () {
+            narrativeParts[index].style.display = "none";
+            if (onCompleteCallback) onCompleteCallback();
+          })
+          .start();
+      }
+
+      // Initial display of the first three narrative parts
+      setTimeout(function () {
+        fadeInElement(0, () => fadeInElement(1, () => fadeInElement(2)));
+      }, 4000);
+
       userNameInput.addEventListener("input", function () {
-        const userName = userNameInput.value.trim();
+        const userName = userNameInput.value;
+        isNamed = true;
+        localStorage.setItem("userName", userName);
         if (userName.length === 3) {
-          localStorage.setItem("userName", userName);
           document.getElementById("userNameDisplay").textContent = userName;
-          // Further interaction handling here
+          // Reverse order of fading out and hiding the first three narrative parts
+          fadeOutElement(2, () =>
+            fadeOutElement(1, () =>
+              fadeOutElement(0, () => {
+                // After fading out and hiding the initial parts, start displaying the subsequent narrative parts
+                fadeInElement(3, () =>
+                  fadeInElement(4, () => fadeInElement(5))
+                );
+                // Adjust canvas opacity
+                new TWEEN.Tween({ opacity: 0.5 })
+                  .to({ opacity: 0.3 }, 2000)
+                  .onUpdate(function (object) {
+                    canvas.style.opacity = object.opacity;
+                  })
+                  .start();
+              })
+            )
+          );
         }
       });
-  
+
       function animate(time) {
         requestAnimationFrame(animate);
         TWEEN.update(time);
       }
-      animate(); // Start the animation loop for TWEEN if you're using it for transitions or animations
+      animate(); // Start the animation loop
     };
   </script>
-  
 </body>
 
-</html> 
+</html>
