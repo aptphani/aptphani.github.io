@@ -1,23 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Welcome to Our Digital Frontier</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
   <style>
-    body, html {
+    body,
+    html {
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
       background-color: black;
       color: white;
-      font-family: 'Victor Mono', monospace;
+      font-family: "Victor Mono", monospace;
     }
-    #smiley{
+
+    #smiley {
       font-size: 54pt;
     }
-    input, textarea {
+
+    input,
+    textarea {
       font-size: 22px;
       display: block;
       width: 100%;
@@ -25,22 +30,32 @@
       padding: 5px 10px;
       background: none;
       background-image: none;
-      border: 1px solid lightgreen; /* Updated color reference without quotes */
-      color: white; /* Updated color reference without quotes */
-      border-radius: 5px; /* Rounded corners */
-      transition: border-color .25s ease, box-shadow .25s ease;
+      border: 1px solid lightgreen;
+      /* Updated color reference without quotes */
+      color: white;
+      /* Updated color reference without quotes */
+      border-radius: 5px;
+      /* Rounded corners */
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+
       &:focus {
         outline: 0;
-        border-color: rgba(15, 165, 60, 1); /* Ensure the border color is visible on focus */
-        box-shadow: 0 0 0 2px rgba(15, 165, 60, 0.5); /* Optional: Add a subtle box-shadow on focus */
+        border-color: rgba(15,
+            165,
+            60,
+            1);
+        /* Ensure the border color is visible on focus */
+        box-shadow: 0 0 0 2px rgba(15, 165, 60, 0.5);
+        /* Optional: Add a subtle box-shadow on focus */
       }
     }
-    
+
     #main-container {
       position: relative;
       width: 100%;
       height: 100%;
     }
+
     #narrative {
       position: absolute;
       width: 75%;
@@ -49,13 +64,18 @@
       left: 10%;
       z-index: 2;
     }
+
     .narrative-part {
       display: none;
       height: 50px;
       font-size: 24pt;
       opacity: 0;
-      margin-top: 35px;
+      margin: 35px;
     }
+    .narrative-part>p{
+        margin-top:75px;
+    }
+
     canvas {
       position: fixed;
       top: 0;
@@ -63,139 +83,175 @@
       z-index: 1;
       opacity: 0.7;
     }
-    
-.button {
-  text-align: center;
-  text-transform: uppercase;
-  cursor: pointer;
-  font-size: 20px;
-  letter-spacing: 4px;
-  position: relative;
-  background-color: #16a085;
-  border: none;
-  color: #fff;
-  padding: 20px;
-  width: 200px;
-  text-align: center;
-  transition-duration: 0.4s;
-  overflow: hidden;
-  box-shadow: 0 5px 15px #193047;
-  border-radius: 4px;
-  top:-15px;
-}
 
-.button:hover {
-  background: #fff;
-  box-shadow: 0px 2px 10px 5px #1abc9c;
-  color: #000;
-}
+    .button {
+      text-align: center;
+      text-transform: uppercase;
+      cursor: pointer;
+      font-size: 20px;
+      letter-spacing: 4px;
+      position: relative;
+      background-color: #16a085;
+      border: none;
+      color: #fff;
+      padding: 20px;
+      width: 200px;
+      text-align: center;
+      transition-duration: 0.4s;
+      overflow: hidden;
+      box-shadow: 0 5px 15px #193047;
+      border-radius: 4px;
+      display:inline-flex;
+      
+    }
 
-.button:after {
-  content: "";
-  background: #1abc9c;
-  display: block;
-  position: absolute;
-  padding-top: 0%;
-  padding-left: 0%;
-  margin-left: -20px !important;
-  margin-top: -0%;
-  opacity: 0;
-  transition: all 0.8s
-}
+    .button:hover {
+      background: #fff;
+      box-shadow: 0px 2px 10px 5px #1abc9c;
+      color: #000;
+    }
 
-.button:active:after {
-  padding: 0;
-  margin: 0;
-  opacity: 1;
-  transition: 0s
-}
+    .button:after {
+      content: "";
+      background: #1abc9c;
+      display: block;
+      position: absolute;
+      padding-top: 0%;
+      padding-left: 0%;
+      margin-left: -20px !important;
+      margin-top: -0%;
+      opacity: 0;
+      transition: all 0.8s;
+    }
 
-.button:focus { outline:0; }
+    .button:active:after {
+      padding: 0;
+      margin: 0;
+      opacity: 1;
+      transition: 0s;
+    }
+
+    .button:focus {
+      outline: 0;
+    }
+
     input {
       font-size: 44pt;
       padding: 10px;
     }
+    
+    @media (min-width: 1745px) {
+  .button {
+    display: inline-block;
+  }
+
+  .text-link {
+    display: none;
+  }
+}
   </style>
 </head>
+
 <body>
   <div id="main-container">
     <canvas id="matrix-rain-canvas"></canvas>
     <div id="narrative">
       <!-- Initial narrative parts -->
-      <div class="narrative-part">Welcome to APT! Your Behind-the-Scenes Coding Powerhouse.</div>
-      <div class="narrative-part">Embark on a journey tailored to your curiosity and professional interests.</div>
-      <div class="narrative-part">Please enter your name (only 3 characters please) <span id="smiley">&#9786;</span> you will thank us later!: <input type="text" id="userName" maxlength="3"></div>
-      
+      <div class="narrative-part">
+        Welcome to APT! Your Behind-the-Scenes Coding Powerhouse.
+      </div>
+      <div class="narrative-part">
+        Embark on a journey tailored to your curiosity and professional
+        interests.
+      </div>
+      <div class="narrative-part">
+        Please enter your name (only 3 characters please)
+        <span id="smiley">&#9786;</span> you will thank us later!:
+        <input type="text" id="userName" maxlength="3" />
+      </div>
+
       <!-- Parts to be displayed after name entry -->
-      <div class="narrative-part" id="personalized-welcome">Thank you, <span id="userNameDisplay"></span>. Please, choose how you wish to delve into our world:</div>
-      <div class="narrative-part" id="explore"><span class="button">Explore</span> our foundation, principles, and the vision that drives us.</div>
-      <div class="narrative-part" id="experience"><span class="button">Experience</span> our expertise through interactive demonstrations that highlight our innovative solutions.</div>
+      <div class="narrative-part" id="personalized-welcome">
+        Thank you, <span id="userNameDisplay"></span>. Please, choose how you
+        wish to delve into our world:
+      </div>
+      <div class="narrative-part" id="explore">
+       <p> <span class="button">Explore</span>
+         <span class="text-link" onclick="exploreLink()">Explore</span>our foundation, principles, and
+        the vision that drives us.</p>
+      </div>
+      <div class="narrative-part" id="experience">
+        <p><span class="button">Experience</span> 
+        <span class="text-link" onclick="experienceLink()">Experience</span>our expertise through
+        interactive demonstrations that highlight our innovative solutions.</p>
+      </div>
     </div>
   </div>
   <script>
-    const canvas = document.getElementById('matrix-rain-canvas');
-    const ctx = canvas.getContext('2d');
+    const canvas = document.getElementById("matrix-rain-canvas");
+    const ctx = canvas.getContext("2d");
     let isNamed = false;
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-document.addEventListener('DOMContentLoaded', function() {
-  // Select the 'Explore' button span directly within the '#explore' div
-  const exploreSpan = document.querySelector('#explore .button');
-
-  exploreSpan.addEventListener('click', function() {
-    fetch('index.php') // Make sure the path to 'index.php' is correct
-      .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
+  
+    // Variable to hold the preloaded HTML content of 'experience.html'
+    let preloadedExperienceHTML = '';
+  
+    document.addEventListener("DOMContentLoaded", function () {
+      // Preload the 'experience.html' content as soon as the page loads
+      fetch('experience.html')
+        .then(response => response.text())
+        .then(html => {
+          preloadedExperienceHTML = html; // Store the HTML content
+        })
+        .catch(error => console.error('Failed to preload experience.html:', error));
+  
+      const exploreSpan = document.querySelector("#explore .button");
+      exploreSpan.addEventListener("click", function () {
+        // Utilize preloaded or fetch anew for different content as necessary
+      });
+  
+      const experienceSpan = document.querySelector("#experience .button");
+      experienceSpan.addEventListener("click", function () {
+        if (preloadedExperienceHTML) {
+          document.open();
+          document.write(preloadedExperienceHTML);
+          document.close();
+        } else {
+          console.error('Experience content is not preloaded yet.');
         }
-        return response.text();
-      })
-      .then(html => {
-        document.open();
-        document.write(html);
-        document.close();
-      })
-      .catch(error => console.error('Failed to load page: ', error));
-  });
-});
-
+      });
+    });
+  
     // Matrix rain effect initialization
-    let charset = "<A P T / >".split(""); // Initial charset assignment based on current localStorage
-
-function getCharset() {
-  const storedName = localStorage.getItem("userName");
-  return (isNamed && storedName) ? storedName.split("") : "<A P T / >".split("");
-}
-
-function updateCharset() {
-  charset = getCharset(); // Update charset from localStorage
-}
-
+    let charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".split("");
+  
     const columns = canvas.width / 20;
     let drops = Array(Math.floor(columns)).fill(1);
-
+  
     function drawMatrixRain() {
-      updateCharset();
       ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.font = "16px 'Victor Mono'";
+  
+      ctx.font = "20px monospace";
       for (let i = 0; i < drops.length; i++) {
         const text = charset[Math.floor(Math.random() * charset.length)];
         ctx.fillStyle = "#0F0";
         ctx.fillText(text, i * 20, drops[i] * 20);
-        if (drops[i] * 20 > canvas.height && Math.random() > 0.975) drops[i] = 0;
+        if (drops[i] * 20 > canvas.height && Math.random() > 0.975) {
+          drops[i] = 0;
+        }
         drops[i]++;
       }
     }
     setInterval(drawMatrixRain, 50);
-
+  
     window.onload = function () {
-      const userNameInput = document.getElementById('userName');
-      let narrativeParts = document.querySelectorAll('.narrative-part');
-
+      const userNameInput = document.getElementById("userName");
+      let narrativeParts = document.querySelectorAll(".narrative-part");
+  
       function fadeInElement(index, onCompleteCallback) {
-        narrativeParts[index].style.display = 'block';
+        narrativeParts[index].style.display = "block";
         let tween = new TWEEN.Tween({ opacity: 0 })
           .to({ opacity: 1 }, 1200)
           .onUpdate(function (object) {
@@ -204,52 +260,24 @@ function updateCharset() {
           .onComplete(onCompleteCallback)
           .start();
       }
-
-      function fadeOutElement(index, onCompleteCallback) {
-        let tween = new TWEEN.Tween({ opacity: 1 })
-          .to({ opacity: 0 }, 200)
-          .onUpdate(function (object) {
-            narrativeParts[index].style.opacity = object.opacity;
-          })
-          .onComplete(function () {
-            narrativeParts[index].style.display = 'none';
-            if (onCompleteCallback) onCompleteCallback();
-          })
-          .start();
-      }
-
-      // Initial display of the first three narrative parts
-       setTimeout(function() {
-    fadeInElement(0, () => fadeInElement(1, () => fadeInElement(2)));
-  }, 4000);
-
-      userNameInput.addEventListener('input', function () {
-        const userName = userNameInput.value;
-        isNamed = true;
-        localStorage.setItem('userName', userName);
+  
+      userNameInput.addEventListener("input", function () {
+        const userName = userNameInput.value.trim();
         if (userName.length === 3) {
-          document.getElementById('userNameDisplay').textContent = userName;
-          // Reverse order of fading out and hiding the first three narrative parts
-          fadeOutElement(2, () => fadeOutElement(1, () => fadeOutElement(0, () => {
-            // After fading out and hiding the initial parts, start displaying the subsequent narrative parts
-            fadeInElement(3, () => fadeInElement(4, () => fadeInElement(5)));
-            // Adjust canvas opacity
-            new TWEEN.Tween({ opacity: 0.5 })
-              .to({ opacity: 0.3 }, 2000)
-              .onUpdate(function (object) {
-                canvas.style.opacity = object.opacity;
-              })
-              .start();
-          })));
+          localStorage.setItem("userName", userName);
+          document.getElementById("userNameDisplay").textContent = userName;
+          // Further interaction handling here
         }
       });
-
+  
       function animate(time) {
         requestAnimationFrame(animate);
         TWEEN.update(time);
       }
-      animate(); // Start the animation loop
+      animate(); // Start the animation loop for TWEEN if you're using it for transitions or animations
     };
   </script>
+  
 </body>
-</html>
+
+</html> 
