@@ -70,19 +70,28 @@
       }
       .close-btn {
         position: absolute;
-        top: 0;
-        right: 10px;
+        top: 20px;
+        right: 20px;
+        z-index: 1002; /* Ensure this is sufficiently high to be on top of other elements */
+        background-color: #ff6b35;
+        color: black;
         border: none;
-        background: transparent;
-        font-size: 20px;
+        padding: 5px 10px;
+        font-size: 16px;
         cursor: pointer;
+        border-radius: 5px;
+        display: inline-block; /* Fallback for older browsers */
+        /* Fix for older versions of IE */
+        zoom: 1;
+        display: inline;
     }
+    
     </style>
   </head>
 
   <body>
     <div id="toast">
-      <button class="close-btn" onclick="closeInstructions()">X</button>
+      <button class="toast-btn" onclick="document.getElementById('toast').style.display='none'";>X</button>
       <p><span class="emoji">🖱️</span> Drag the cube to explore its dimensions</p>
       <p><span class="emoji">🔍</span> Double-click on any face to activate  the animation.</p>
   
@@ -100,6 +109,8 @@
     </script>
     
     <script type="module">
+  
+
       import * as THREE from "three";
       import TWEEN from "tween";
 
@@ -124,13 +135,17 @@
         "Video4.mp4",
         "Video5.mp4",
       ];
-      const videoMaterials = videoPaths.map(
-        (path) =>
-          new THREE.MeshBasicMaterial({
-            map: createVideoTexture(path),
-            side: THREE.DoubleSide,
-          })
-      );
+      const thumbPaths = [
+      "thumbs/Video1.jpg", // Assuming a thumbnail exists for Video1.mp4
+      "thumbs/Video6.jpg",
+      "thumbs/Video2.jpg",
+      "thumbs/Video3.jpg",
+      "thumbs/Video4.jpg",
+      "thumbs/Video5.jpg",
+    ];
+      const videoMaterials = videoPaths.map((path, index) =>
+      createVideoTexture(path, thumbPaths[index])
+    );
       const planeGeometry = new THREE.PlaneGeometry(4, 4);
       var cube = new THREE.Group();
 
@@ -217,20 +232,31 @@
         instructionPlane.visible = false;
       });
 
-      function createVideoTexture(videoPath) {
-        const video = document.createElement("video");
+      function createVideoTexture(videoPath, thumbPath) {
+        // Create a texture from the thumbnail image first
+        const thumbTexture = new THREE.TextureLoader().load(thumbPath);
+        const material = new THREE.MeshBasicMaterial({ map: thumbTexture, side: THREE.DoubleSide });
+    
+        // Create the video element
+        const video = document.createElement('video');
         video.src = videoPath;
         video.loop = true;
         video.muted = true;
         video.playbackRate = 1.0;
         video.crossOrigin = "anonymous";
-        const texture = new THREE.VideoTexture(video);
-        video.addEventListener("loadedmetadata", () => {
+    
+        // When the video metadata is loaded, replace the thumbnail with the video texture
+        video.addEventListener('loadedmetadata', () => {
           video.play();
+          const videoTexture = new THREE.VideoTexture(video);
+          material.map = videoTexture;
+          material.needsUpdate = true;
         });
-        return texture;
+    
+        return material;
       }
-
+    
+      
       function arrangeCubeFaces(children) {
         children[0].position.set(0, 0, -2);
         children[0].rotation.y = Math.PI;

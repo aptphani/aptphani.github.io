@@ -72,7 +72,9 @@
       opacity: 0;
       margin-top: 35px;
     }
-
+    .narrative-part > p{
+      margin: 80px 0px;
+    }
     canvas {
       position: fixed;
       top: 0;
@@ -82,24 +84,44 @@
     }
 
     .button {
+      display: -webkit-inline-flex; /* Safari */
+      display: -ms-flexbox; /* IE 10 */
+      display: inline-flex; /* Modern browsers */
+      -webkit-align-items: center; /* Safari */
+      -ms-flex-align: center; /* IE 10 */
+      align-items: center; /* Modern browsers */
       text-align: center;
       text-transform: uppercase;
       cursor: pointer;
       font-size: 20px;
       letter-spacing: 4px;
-      position: relative;
       background-color: #16a085;
       border: none;
       color: #fff;
       padding: 20px;
       width: 200px;
-      text-align: center;
       transition-duration: 0.4s;
       overflow: hidden;
       box-shadow: 0 5px 15px #193047;
       border-radius: 4px;
-      top: -15px;
     }
+    
+    /* Fallback for browsers that do not support inline-flex */
+    .button-fallback {
+      display: inline-block; /* Older browsers fallback */
+      /* Use this class for elements inside .button to mimic flex behavior */
+    }
+    
+    /* IE Specific Fixes */
+    @media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
+      /* IE10+ CSS styles go here */
+      .button {
+        display: -ms-flexbox;
+        -ms-flex-pack: center;
+        -ms-flex-align: center;
+      }
+    }
+    
 
     .button:hover {
       background: #fff;
@@ -162,12 +184,14 @@
         wish to delve into our world:
       </div>
       <div class="narrative-part" id="explore">
-        <span class="button">Explore</span> our foundation, principles, and
-        the vision that drives us.
+       <p>  <span class="button">Explore</span> our foundation, principles, and
+        the vision that drives us.</p>
       </div>
       <div class="narrative-part" id="experience">
+       <p>
         <span class="button">Experience</span> our expertise through
         interactive demonstrations that highlight our innovative solutions.
+       </p>
       </div>
     </div>
   </div>
